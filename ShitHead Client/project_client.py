@@ -7,6 +7,16 @@ import pygame
 import button
 import cards
 import game
+from pages import (
+    choose_room_page,
+    create_room_page,
+    finish_page,
+    game_page,
+    open_page,
+    rules_page,
+    settings_page,
+    waiting_page,
+)
 from tcp_by_size import send_with_size, recv_by_size
 
 IP = "127.0.0.1"
@@ -32,6 +42,7 @@ SCROLL = 2
 RIGHT = 3
 screen = None
 IMAGE_CACHE = {}
+SCALED_IMAGE_CACHE = {}
 
 
 def load_image(path, colorkey=None):
@@ -42,6 +53,15 @@ def load_image(path, colorkey=None):
         if colorkey is not None:
             image.set_colorkey(colorkey)
         IMAGE_CACHE[key] = image
+    return image
+
+
+def load_scaled_image(path, size, colorkey=None):
+    key = (path, size, colorkey)
+    image = SCALED_IMAGE_CACHE.get(key)
+    if image is None:
+        image = pygame.transform.smoothscale(load_image(path, colorkey), size)
+        SCALED_IMAGE_CACHE[key] = image
     return image
 
 
@@ -132,11 +152,15 @@ def open_screen(event, pos):
     create_a_room = button.Button(
         WHITE, WINDOW_WIDTH / 2 - 350, 590, 700, 100, "Create A Room"
     )
+    rules = button.Button(
+        WHITE, WINDOW_WIDTH / 2 - 350, 740, 700, 100, "Game Rules"
+    )
 
     next_screen = ""
     red_raw_window(quick_game)
     red_raw_window(choose_a_room)
     red_raw_window(create_a_room)
+    red_raw_window(rules)
     pygame.display.update()
 
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
@@ -148,6 +172,9 @@ def open_screen(event, pos):
 
         elif create_a_room.is_over(pos):
             next_screen = "CREATE_A_ROOM"
+
+        elif rules.is_over(pos):
+            next_screen = "RULES"
 
         elif WINDOW_WIDTH - 150 < pos[0] < WINDOW_WIDTH - 150 + 128:
             if 22 < pos[1] < 22 + 128:
@@ -168,6 +195,10 @@ def open_screen(event, pos):
             create_a_room.color = LIGHT_GREY
         else:
             create_a_room.color = WHITE
+        if rules.is_over(pos):
+            rules.color = LIGHT_GREY
+        else:
+            rules.color = WHITE
 
         pygame.display.flip()
 
@@ -192,7 +223,155 @@ def open_screen(event, pos):
         scrn = "CREATE_A_ROOM", num
     elif next_screen == "SETTINGS":
         scrn = "SETTINGS"
+    elif next_screen == "RULES":
+        scrn = "RULES"
     return scrn
+
+
+def draw_wrapped_lines(font, lines, x, y, max_width, color):
+    line_space = 4
+    line_height = font.get_linesize()
+    current_y = y
+    for line in lines:
+        words = line.split(" ")
+        current_line = ""
+        for word in words:
+            candidate = word if not current_line else current_line + " " + word
+            if font.size(candidate)[0] <= max_width:
+                current_line = candidate
+            else:
+                text = font.render(current_line, 1, color)
+                screen.blit(text, (x, current_y))
+                current_y += line_height + line_space
+                current_line = word
+        if current_line:
+            text = font.render(current_line, 1, color)
+            screen.blit(text, (x, current_y))
+            current_y += line_height + line_space
+    return current_y
+
+
+def draw_rules_section(x, y, width, height, title, lines):
+    pygame.draw.rect(screen, LIGHT_GREY, (x, y, width, height), 0)
+    pygame.draw.rect(screen, BLACK, (x, y, width, height), 3)
+
+    title_font = pygame.font.SysFont("calibri", 38)
+    body_font = pygame.font.SysFont("calibri", 25)
+
+    title_text = title_font.render(title, 1, PINK)
+    screen.blit(title_text, (x + 15, y + 10))
+
+    draw_wrapped_lines(body_font, lines, x + 15, y + 65, width - 30, BLACK)
+
+
+def rules_menu(event, pos):
+    global screen
+
+    img = load_image(BACKGROUND)
+    screen.blit(img, (0, 0))
+
+    title_font = pygame.font.SysFont("algerian", 64)
+    title = title_font.render("ShitHead - Official Rules", 1, WHITE)
+    screen.blit(title, (WINDOW_WIDTH / 2 - title.get_width() / 2, 30))
+
+    back_button = load_image(ICON, PINK)
+    screen.blit(back_button, (25, 25))
+
+    draw_rules_section(
+        60,
+        150,
+        760,
+        220,
+        "Setup Game",
+        [
+            "Each player starts with 3 secret face-down cards, "
+            "3 visible face-up cards, and 3 cards in hand.",
+            "The rest of the deck stays in the center as the draw deck.",
+            "The throw deck begins empty.",
+        ],
+    )
+    draw_rules_section(
+        880,
+        150,
+        760,
+        220,
+        "Quick Play",
+        [
+            "Press Quick Game from home.",
+            "The game uses your Settings player count "
+            "and joins the first matching room.",
+            "Choose A Room lets you browse rooms manually instead.",
+        ],
+    )
+    draw_rules_section(
+        60,
+        400,
+        760,
+        220,
+        "How To Play",
+        [
+            "On your turn, left-click cards to select cards "
+            "of the same number.",
+            "Press T to throw selected cards.",
+            "Click throw deck top to take the pile into your hand.",
+            "Right-click T clears your current selection.",
+        ],
+    )
+    draw_rules_section(
+        880,
+        400,
+        760,
+        220,
+        "Win Condition",
+        [
+            "A player wins by getting rid of all hand, visible, "
+            "and secret cards.",
+            "The final player left with cards is the ShitHead.",
+        ],
+    )
+    draw_rules_section(
+        60,
+        650,
+        1580,
+        260,
+        "Special Cards",
+        [
+            "2: Reset card, can be played freely.",
+            "3: Transparent card, follows the previous card rule.",
+            "4: Cut-in card, can be thrown out of turn when pile is empty.",
+            "8: Skip next player.",
+            "10: Burn the throw deck.",
+            "Joker (14): Give throw deck to selected player "
+            "(or previous player by default).",
+        ],
+    )
+
+    settings_small = load_scaled_image(SETTINGS, (90, 90), PINK)
+    move_left_small = load_scaled_image(MOVE_LEFT, (80, 80), PINK)
+    move_right_small = load_scaled_image(MOVE_RIGHT, (80, 80), PINK)
+    screen.blit(settings_small, (740, 210))
+    screen.blit(move_left_small, (1220, 210))
+    screen.blit(move_right_small, (1315, 210))
+
+    special_cards = [
+        cards.Cards(2, cards.DIAMONDS, 1020, 780),
+        cards.Cards(3, cards.CLUBS, 1090, 780),
+        cards.Cards(4, cards.HEARTS, 1160, 780),
+        cards.Cards(8, cards.SPADES, 1230, 780),
+        cards.Cards(10, cards.DIAMONDS, 1300, 780),
+        cards.Cards(14, cards.SPADES, 1370, 780),
+    ]
+    for card in special_cards:
+        card.draw(screen)
+
+    back = False
+    if event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
+        if 25 < pos[0] < 25 + 250 and 25 < pos[1] < 25 + 250:
+            back = True
+
+    if back:
+        return "OPEN_SCREEN"
+    return "RULES"
 
 
 def settings_menu(event, pos):
@@ -1732,23 +1911,27 @@ def event_handler(scrn, pos, event, more_args):
     :return:
     """
     if scrn == "OPEN_SCREEN":
-        return open_screen(event, pos)
+        return open_page.open_screen(event, pos)
     elif scrn == "SETTINGS":
-        return settings_menu(event, pos)
+        return settings_page.settings_menu(event, pos)
+    elif scrn == "RULES":
+        return rules_page.rules_menu(event, pos)
     elif scrn == "CHOOSE_A_ROOM":
-        return choose_a_room_menu(event, pos, more_args[0], more_args[1])
+        return choose_room_page.choose_a_room_menu(
+            event, pos, more_args[0], more_args[1]
+        )
     elif scrn == "CREATE_A_ROOM":
-        return create_a_room_menu(event, pos, more_args[0])
+        return create_room_page.create_a_room_menu(event, pos, more_args[0])
     elif scrn == "WAITING":
-        return wait_to_full(
+        return waiting_page.wait_to_full(
             event, pos, more_args[0], more_args[1], more_args[2]
         )
     elif scrn == "GAME":
-        return game_manager(
+        return game_page.game_manager(
             event, pos, more_args[0], more_args[1], more_args[2]
         )
     elif scrn == "FINISH":
-        return finish(event, pos, more_args)
+        return finish_page.finish(event, pos, more_args)
     elif scrn == "CHOOSE_TO_GIVE":
         pass
 
