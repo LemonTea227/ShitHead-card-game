@@ -67,7 +67,9 @@ def draw_rules_section(
 
 
 def draw_page_top_bar(
-    title_text: str, header_height: int = 130
+    title_text: str,
+    header_height: int = 130,
+    subtitle_text: Optional[str] = None,
 ) -> pygame.Rect:
     pc = get_client_module()
 
@@ -77,14 +79,25 @@ def draw_page_top_bar(
     pygame.draw.line(
         pc.screen,
         pc.BLACK,
-        (0, header_height),
-        (pc.WINDOW_WIDTH, header_height),
+        (0, header_height - 1),
+        (pc.WINDOW_WIDTH, header_height - 1),
         3,
     )
 
     title_font = pygame.font.SysFont("calibri", 54, bold=True)
     title = title_font.render(title_text, 1, pc.PINK)
     pc.screen.blit(title, (pc.WINDOW_WIDTH / 2 - title.get_width() / 2, 26))
+
+    if subtitle_text:
+        subtitle_font = pygame.font.SysFont("calibri", 26)
+        subtitle = subtitle_font.render(subtitle_text, 1, pc.BLACK)
+        pc.screen.blit(
+            subtitle,
+            (
+                pc.WINDOW_WIDTH / 2 - subtitle.get_width() / 2,
+                header_height - subtitle.get_height() - 8,
+            ),
+        )
 
     back_button = pc.button.Button(pc.WHITE, 25, 26, 210, 72, "Back")
     pc.red_raw_window(back_button)
@@ -191,16 +204,16 @@ def rules_menu(
 
     header_height = 130
     content_top = header_height + 20
-    content_bottom = pc.WINDOW_HEIGHT - 20
     max_scroll_offset = 0
     min_scroll_offset = -330
+    scroll_step = 24
 
     if event.type == pygame.MOUSEWHEEL:
-        RULES_SCROLL_OFFSET += event.y * 45
+        RULES_SCROLL_OFFSET += event.y * scroll_step
     elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 4:
-        RULES_SCROLL_OFFSET += 45
+        RULES_SCROLL_OFFSET += scroll_step
     elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 5:
-        RULES_SCROLL_OFFSET -= 45
+        RULES_SCROLL_OFFSET -= scroll_step
 
     if RULES_SCROLL_OFFSET > max_scroll_offset:
         RULES_SCROLL_OFFSET = max_scroll_offset
@@ -308,21 +321,12 @@ def rules_menu(
         label_text = card_label_font.render(label, 1, pc.BLACK)
         pc.screen.blit(label_text, (draw_x + 18, draw_y + 112))
 
-    scroll_hint = pygame.font.SysFont("calibri", 28).render(
-        "Scroll to read more", 1, pc.WHITE
-    )
-    pc.screen.blit(
-        scroll_hint,
-        (
-            pc.WINDOW_WIDTH / 2 - scroll_hint.get_width() / 2,
-            content_bottom - 34,
-        ),
-    )
-
     top_mask_rect = pygame.Rect(0, 0, pc.WINDOW_WIDTH, content_top)
     pygame.draw.rect(pc.screen, pc.LIGHT_GREY, top_mask_rect)
 
-    back_rect = draw_page_top_bar("Official Rules", header_height)
+    back_rect = draw_page_top_bar(
+        "Official Rules", header_height, "Scroll to see more"
+    )
 
     back = False
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == pc.LEFT:

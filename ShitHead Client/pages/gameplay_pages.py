@@ -599,7 +599,6 @@ def game_manager(
     card_to_window = pc.card_to_window
 
     BACKGROUND = pc.BACKGROUND
-    SETTINGS = pc.SETTINGS
     WINDOW_WIDTH = pc.WINDOW_WIDTH
     WINDOW_HEIGHT = pc.WINDOW_HEIGHT
     WHITE = pc.WHITE
@@ -614,20 +613,15 @@ def game_manager(
     screen.blit(img, (0, 0))  # (left, top)
     pygame.display.flip()
 
-    rules_icon_x = WINDOW_WIDTH - 150
-    rules_icon_y = 22
-    rules_icon = load_image(SETTINGS, PINK)
-    screen.blit(rules_icon, (rules_icon_x, rules_icon_y))
-    rules_label = button.Button(
+    rules_entry_button = button.Button(
         WHITE,
-        rules_icon_x - 10,
-        rules_icon_y + 125,
-        148,
-        52,
+        25,
+        25,
+        210,
+        72,
         "Rules",
     )
-    red_raw_window(rules_label)
-    rules_hitbox = pygame.Rect(rules_icon_x, rules_icon_y, 128, 128)
+    red_raw_window(rules_entry_button)
 
     deck_card = None
     top_card = None
@@ -1155,7 +1149,7 @@ def game_manager(
     message = "GAME~"
 
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
-        if rules_hitbox.collidepoint(pos) or rules_label.is_over(pos):
+        if rules_entry_button.is_over(pos):
             return "RULES_GAME", cards_message, cards_to_throw, to_who
         for num_player_button in num_player_buttons:
             if num_player_button.is_over(pos):
