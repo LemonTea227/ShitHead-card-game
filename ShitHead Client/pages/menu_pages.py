@@ -203,7 +203,7 @@ def rules_menu(
     header_height = 130
     content_top = header_height
     max_scroll_offset = 0
-    min_scroll_offset = -330
+    min_scroll_offset = -380
     scroll_step = 24
 
     if event.type == pygame.MOUSEWHEEL:
@@ -290,8 +290,8 @@ def rules_menu(
         text_max_width=1200,
     )
 
-    pygame.draw.rect(pc.screen, pc.WHITE, (760, 1060 + y_shift, 900, 180), 0)
-    pygame.draw.rect(pc.screen, pc.BLACK, (760, 1060 + y_shift, 900, 180), 2)
+    pygame.draw.rect(pc.screen, pc.WHITE, (760, 1060 + y_shift, 900, 220), 0)
+    pygame.draw.rect(pc.screen, pc.BLACK, (760, 1060 + y_shift, 900, 220), 2)
     panel_title_font = pygame.font.SysFont("calibri", 30)
     panel_title = panel_title_font.render(
         "Special cards shown in-game", 1, pc.PINK
