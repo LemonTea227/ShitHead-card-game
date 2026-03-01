@@ -11,12 +11,14 @@ SIZE_HEADER_FORMAT = "00000|"
 SIZE_HEADER_SIZE = len(SIZE_HEADER_FORMAT)
 TCP_DEBUG = False
 
-TextOrBytes = Union[str, bytes]
+TextOrBytes = Union[str, bytes, bytearray]
 
 
 def to_bytes(data: TextOrBytes) -> bytes:
     if isinstance(data, bytes):
         return data
+    if isinstance(data, bytearray):
+        return bytes(data)
     return str(data).encode("utf-8")
 
 
@@ -54,7 +56,7 @@ def recv_by_size(sock: socket.socket) -> str:
     if data_len != len(data):
         return ""
 
-    text_data = to_text(bytes(data))
+    text_data = to_text(data)
     if TCP_DEBUG and text_data:
         preview = text_data if len(text_data) <= 100 else text_data[:100]
         logger.debug("Recv(%s)>>>%s", to_text(header), preview)
@@ -66,7 +68,7 @@ def send_with_size(sock: socket.socket, data: TextOrBytes) -> None:
     # Maximum value that fits in SIZE_HEADER_SIZE-1 decimal digits
     max_payload = 10 ** (SIZE_HEADER_SIZE - 1) - 1
     if len(payload) > max_payload:
-        raise ValueError(
+        raise socket.error(
             f"Payload too large: {len(payload)} bytes exceeds max {max_payload}"
         )
     header = str(len(payload)).zfill(SIZE_HEADER_SIZE - 1) + "|"
