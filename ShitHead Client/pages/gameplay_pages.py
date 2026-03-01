@@ -32,554 +32,160 @@ def choose_a_room_menu(
     LEFT = pc.LEFT
 
     screen = pc.screen
+
+    ROOMS_PER_PAGE = 5
+    ROOM_BUTTON_X = WINDOW_WIDTH / 2 - 350
+    ROOM_BUTTON_WIDTH = 700
+    ROOM_BUTTON_HEIGHT = 100
+    ROOM_START_Y = 200
+    ROOM_Y_STEP = 102
+
+    TITLE_X = WINDOW_WIDTH / 2 - 350
+    TITLE_Y = 75
+    TITLE_WIDTH = 700
+    TITLE_HEIGHT = 100
+
+    PAGE_LABEL_X = WINDOW_WIDTH / 2 - 50
+    PAGE_LABEL_Y = WINDOW_HEIGHT - 150
+    PAGE_LABEL_SIZE = 100
+
+    ARROW_OFFSET = 110 + 50
+    ARROW_WIDTH = 220
+    ARROW_Y = WINDOW_HEIGHT - 230
+    ARROW_BOTTOM = WINDOW_HEIGHT
+
+    LEFT_ARROW_X = WINDOW_WIDTH / 2 - ARROW_OFFSET - ARROW_WIDTH
+    RIGHT_ARROW_X = WINDOW_WIDTH / 2 + ARROW_OFFSET
+
+    BACK_BUTTON_X = 25
+    BACK_BUTTON_Y = 25
+    BACK_BUTTON_SIZE = 250
+
     games = []
-    for g in games_message:
-        info = g.split(",")
+    for game_info in games_message:
+        info = game_info.split(",")
         if len(info) == 3:
             room = game.Game(int(info[0]), int(info[2]), int(info[1]))
             games.append(room)
 
+    def get_room_text(page_number: int, slot_index: int) -> str:
+        room_index = (page_number - 1) * ROOMS_PER_PAGE + slot_index
+        if room_index < len(games):
+            room = games[room_index]
+            return (
+                f"ROOM {room.num_room + 1} Online: "
+                f"{room.players}/{room.max_players}"
+            )
+        return f"ROOM [{room_index + 1}] Online: 0/0"
+
+    def draw_page(current_page: int) -> list[object]:
+        page_label = button.Button(
+            WHITE,
+            PAGE_LABEL_X,
+            PAGE_LABEL_Y,
+            PAGE_LABEL_SIZE,
+            PAGE_LABEL_SIZE,
+            str(current_page),
+        )
+        red_raw_window(page_label)
+
+        room_buttons = []
+        for slot_index in range(ROOMS_PER_PAGE):
+            room_button = button.Button(
+                WHITE,
+                ROOM_BUTTON_X,
+                ROOM_START_Y + slot_index * ROOM_Y_STEP,
+                ROOM_BUTTON_WIDTH,
+                ROOM_BUTTON_HEIGHT,
+                get_room_text(current_page, slot_index),
+            )
+            red_raw_window(room_button)
+            room_buttons.append(room_button)
+        return room_buttons
+
     img = load_image(pc.BACKGROUND)
-    screen.blit(img, (0, 0))  # (left, top)
+    screen.blit(img, (0, 0))
     pygame.display.flip()
 
     choose_a_room = button.Button(
-        PINK, WINDOW_WIDTH / 2 - 350, 75, 700, 100, "Choose A Room"
+        PINK,
+        TITLE_X,
+        TITLE_Y,
+        TITLE_WIDTH,
+        TITLE_HEIGHT,
+        "Choose A Room",
     )
     red_raw_window(choose_a_room)
 
     last_page = load_image(MOVE_LEFT, PINK)
-    screen.blit(
-        last_page, (WINDOW_WIDTH / 2 - 110 - 50 - 220, WINDOW_HEIGHT - 230)
-    )
+    screen.blit(last_page, (LEFT_ARROW_X, ARROW_Y))
 
     num = page
-    number = button.Button(
-        WHITE, WINDOW_WIDTH / 2 - 50, WINDOW_HEIGHT - 150, 100, 100, str(num)
-    )
-    red_raw_window(number)
+    room_buttons = draw_page(num)
 
     next_page = load_image(MOVE_RIGHT, PINK)
-    screen.blit(next_page, (WINDOW_WIDTH / 2 + 110 + 50, WINDOW_HEIGHT - 230))
+    screen.blit(next_page, (RIGHT_ARROW_X, ARROW_Y))
 
     back_button = load_image(ICON, PINK)
-    screen.blit(back_button, (25, 25))
+    screen.blit(back_button, (BACK_BUTTON_X, BACK_BUTTON_Y))
+
+    pygame.display.update()
 
     back_to_menu = False
     do_choose = False
     choice = 0
 
-    room1 = None
-    room2 = None
-    room3 = None
-    room4 = None
-    room5 = None
-
-    if len(games) >= (num - 1) * 5 + 1:
-        room1 = button.Button(
-            WHITE,
-            WINDOW_WIDTH / 2 - 350,
-            200,
-            700,
-            100,
-            "ROOM "
-            + str(games[(num - 1) * 5].num_room + 1)
-            + " Online: "
-            + str(games[(num - 1) * 5].players)
-            + "/"
-            + str(games[(num - 1) * 5].max_players),
-        )
-    else:
-        room1 = button.Button(
-            WHITE,
-            WINDOW_WIDTH / 2 - 350,
-            200,
-            700,
-            100,
-            "ROOM [" + str((num - 1) * 5 + 1) + "] Online: 0/0",
-        )
-    red_raw_window(room1)
-    if len(games) >= (num - 1) * 5 + 2:
-        room2 = button.Button(
-            WHITE,
-            WINDOW_WIDTH / 2 - 350,
-            302,
-            700,
-            100,
-            "ROOM "
-            + str(games[(num - 1) * 5 + 1].num_room + 1)
-            + " Online: "
-            + str(games[(num - 1) * 5 + 1].players)
-            + "/"
-            + str(games[(num - 1) * 5 + 1].max_players),
-        )
-    else:
-        room2 = button.Button(
-            WHITE,
-            WINDOW_WIDTH / 2 - 350,
-            302,
-            700,
-            100,
-            "ROOM [" + str((num - 1) * 5 + 2) + "] Online: 0/0",
-        )
-    red_raw_window(room2)
-    if len(games) >= (num - 1) * 5 + 3:
-        room3 = button.Button(
-            WHITE,
-            WINDOW_WIDTH / 2 - 350,
-            404,
-            700,
-            100,
-            "ROOM "
-            + str(games[(num - 1) * 5 + 2].num_room + 1)
-            + " Online: "
-            + str(games[(num - 1) * 5 + 2].players)
-            + "/"
-            + str(games[(num - 1) * 5 + 2].max_players),
-        )
-    else:
-        room3 = button.Button(
-            WHITE,
-            WINDOW_WIDTH / 2 - 350,
-            404,
-            700,
-            100,
-            "ROOM [" + str((num - 1) * 5 + 3) + "] Online: 0/0",
-        )
-    red_raw_window(room3)
-    if len(games) >= (num - 1) * 5 + 4:
-        room4 = button.Button(
-            WHITE,
-            WINDOW_WIDTH / 2 - 350,
-            506,
-            700,
-            100,
-            "ROOM "
-            + str(games[(num - 1) * 5 + 3].num_room + 1)
-            + " Online: "
-            + str(games[(num - 1) * 5 + 3].players)
-            + "/"
-            + str(games[(num - 1) * 5 + 3].max_players),
-        )
-    else:
-        room4 = button.Button(
-            WHITE,
-            WINDOW_WIDTH / 2 - 350,
-            506,
-            700,
-            100,
-            "ROOM [" + str((num - 1) * 5 + 4) + "] Online: 0/0",
-        )
-    red_raw_window(room4)
-    if len(games) >= (num - 1) * 5 + 5:
-        room5 = button.Button(
-            WHITE,
-            WINDOW_WIDTH / 2 - 350,
-            608,
-            700,
-            100,
-            "ROOM "
-            + str(games[(num - 1) * 5 + 4].num_room + 1)
-            + " Online: "
-            + str(games[(num - 1) * 5 + 4].players)
-            + "/"
-            + str(games[(num - 1) * 5 + 4].max_players),
-        )
-    else:
-        room5 = button.Button(
-            WHITE,
-            WINDOW_WIDTH / 2 - 350,
-            608,
-            700,
-            100,
-            "ROOM [" + str((num - 1) * 5 + 5) + "] Online: 0/0",
-        )
-    red_raw_window(room5)
-
-    pygame.display.update()
-
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
         print("clicked: " + str(pos))
-        if room1.is_over(pos):
+
+        for slot_index, room_button in enumerate(room_buttons):
+            if not room_button.is_over(pos):
+                continue
+
+            room_index = (num - 1) * ROOMS_PER_PAGE + slot_index
             if (
-                len(games) >= (num - 1) * 5 + 1
-                and games[(num - 1) * 5].players
-                != games[(num - 1) * 5].max_players
+                room_index < len(games)
+                and games[room_index].players != games[room_index].max_players
             ):
-                choice = games[(num - 1) * 5].num_room
+                choice = games[room_index].num_room
                 do_choose = True
+            break
+        else:
+            in_left_arrow = LEFT_ARROW_X < pos[0] < LEFT_ARROW_X + ARROW_WIDTH
+            in_right_arrow = (
+                RIGHT_ARROW_X < pos[0] < RIGHT_ARROW_X + ARROW_WIDTH
+            )
+            in_arrow_y = ARROW_Y < pos[1] < ARROW_BOTTOM
 
-        elif room2.is_over(pos):
-            if (
-                len(games) >= (num - 1) * 5 + 2
-                and games[(num - 1) * 5 + 1].players
-                != games[(num - 1) * 5 + 1].max_players
-            ):
-                choice = games[(num - 1) * 5 + 1].num_room
-                do_choose = True
-
-        elif room3.is_over(pos):
-            if (
-                len(games) >= (num - 1) * 5 + 3
-                and games[(num - 1) * 5 + 2].players
-                != games[(num - 1) * 5 + 2].max_players
-            ):
-                choice = games[(num - 1) * 5 + 2].num_room
-                do_choose = True
-
-        elif room4.is_over(pos):
-            if (
-                len(games) >= (num - 1) * 5 + 4
-                and games[(num - 1) * 5 + 3].players
-                != games[(num - 1) * 5 + 3].max_players
-            ):
-                choice = games[(num - 1) * 5 + 3].num_room
-                do_choose = True
-
-        elif room5.is_over(pos):
-            if (
-                len(games) >= (num - 1) * 5 + 5
-                and games[(num - 1) * 5 + 4].players
-                != games[(num - 1) * 5 + 4].max_players
-            ):
-                choice = games[(num - 1) * 5 + 4].num_room
-                do_choose = True
-
-        elif (
-            WINDOW_WIDTH / 2 - 110 - 50 - 220
-            < pos[0]
-            < WINDOW_WIDTH / 2 - 110 - 50
-        ):
-            if WINDOW_HEIGHT - 230 < pos[1] < WINDOW_HEIGHT:
-                if num >= 2:
-                    num -= 1
-                    number = button.Button(
-                        WHITE,
-                        WINDOW_WIDTH / 2 - 50,
-                        WINDOW_HEIGHT / 2 - 50,
-                        100,
-                        100,
-                        str(num),
-                    )
-                    red_raw_window(number)
-
-                    if len(games) >= (num - 1) * 5 + 1:
-                        room1 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            200,
-                            700,
-                            100,
-                            "ROOM "
-                            + str(games[(num - 1) * 5].num_room + 1)
-                            + " Online: "
-                            + str(games[(num - 1) * 5].players)
-                            + "/"
-                            + str(games[(num - 1) * 5].max_players),
-                        )
-                    else:
-                        room1 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            200,
-                            700,
-                            100,
-                            "ROOM ["
-                            + str((num - 1) * 5 + 1)
-                            + "] Online: 0/0",
-                        )
-                    red_raw_window(room1)
-                    if len(games) >= (num - 1) * 5 + 2:
-                        room2 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            302,
-                            700,
-                            100,
-                            "ROOM "
-                            + str(games[(num - 1) * 5 + 1].num_room + 1)
-                            + " Online: "
-                            + str(games[(num - 1) * 5 + 1].players)
-                            + "/"
-                            + str(games[(num - 1) * 5 + 1].max_players),
-                        )
-                    else:
-                        room2 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            302,
-                            700,
-                            100,
-                            "ROOM ["
-                            + str((num - 1) * 5 + 2)
-                            + "] Online: 0/0",
-                        )
-                    red_raw_window(room2)
-                    if len(games) >= (num - 1) * 5 + 3:
-                        room3 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            404,
-                            700,
-                            100,
-                            "ROOM "
-                            + str(games[(num - 1) * 5 + 2].num_room + 1)
-                            + " Online: "
-                            + str(games[(num - 1) * 5 + 2].players)
-                            + "/"
-                            + str(games[(num - 1) * 5 + 2].max_players),
-                        )
-                    else:
-                        room3 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            404,
-                            700,
-                            100,
-                            "ROOM ["
-                            + str((num - 1) * 5 + 3)
-                            + "] Online: 0/0",
-                        )
-                    red_raw_window(room3)
-                    if len(games) >= (num - 1) * 5 + 4:
-                        room4 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            506,
-                            700,
-                            100,
-                            "ROOM "
-                            + str(games[(num - 1) * 5 + 3].num_room + 1)
-                            + " Online: "
-                            + str(games[(num - 1) * 5 + 3].players)
-                            + "/"
-                            + str(games[(num - 1) * 5 + 3].max_players),
-                        )
-                    else:
-                        room4 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            506,
-                            700,
-                            100,
-                            "ROOM ["
-                            + str((num - 1) * 5 + 4)
-                            + "] Online: 0/0",
-                        )
-                    red_raw_window(room4)
-                    if len(games) >= (num - 1) * 5 + 5:
-                        room5 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            608,
-                            700,
-                            100,
-                            "ROOM "
-                            + str(games[(num - 1) * 5 + 4].num_room + 1)
-                            + " Online: "
-                            + str(games[(num - 1) * 5 + 4].players)
-                            + "/"
-                            + str(games[(num - 1) * 5 + 4].max_players),
-                        )
-                    else:
-                        room5 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            608,
-                            700,
-                            100,
-                            "ROOM ["
-                            + str((num - 1) * 5 + 5)
-                            + "] Online: 0/0",
-                        )
-                    red_raw_window(room5)
+            if in_left_arrow and in_arrow_y and num >= 2:
+                num -= 1
+                room_buttons = draw_page(num)
                 pygame.display.update()
-
-        elif (
-            WINDOW_WIDTH / 2 + 110 + 50
-            < pos[0]
-            < WINDOW_WIDTH / 2 + 110 + 50 + 220
-        ):
-            if WINDOW_HEIGHT - 230 < pos[1] < WINDOW_HEIGHT:
-                if len(games) > num * 5:
-                    num += 1
-                    number = button.Button(
-                        WHITE,
-                        WINDOW_WIDTH / 2 - 50,
-                        WINDOW_HEIGHT / 2 - 50,
-                        100,
-                        100,
-                        str(num),
-                    )
-                    red_raw_window(number)
-
-                    if len(games) >= (num - 1) * 5 + 1:
-                        room1 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            200,
-                            700,
-                            100,
-                            "ROOM "
-                            + str(games[(num - 1) * 5].num_room + 1)
-                            + " Online: "
-                            + str(games[(num - 1) * 5].players)
-                            + "/"
-                            + str(games[(num - 1) * 5].max_players),
-                        )
-                    else:
-                        room1 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            200,
-                            700,
-                            100,
-                            "ROOM ["
-                            + str((num - 1) * 5 + 1)
-                            + "] Online: 0/0",
-                        )
-                    red_raw_window(room1)
-                    if len(games) >= (num - 1) * 5 + 2:
-                        room2 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            302,
-                            700,
-                            100,
-                            "ROOM "
-                            + str(games[(num - 1) * 5 + 1].num_room + 1)
-                            + " Online: "
-                            + str(games[(num - 1) * 5 + 1].players)
-                            + "/"
-                            + str(games[(num - 1) * 5 + 1].max_players),
-                        )
-                    else:
-                        room2 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            302,
-                            700,
-                            100,
-                            "ROOM ["
-                            + str((num - 1) * 5 + 2)
-                            + "] Online: 0/0",
-                        )
-                    red_raw_window(room2)
-                    if len(games) >= (num - 1) * 5 + 3:
-                        room3 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            404,
-                            700,
-                            100,
-                            "ROOM "
-                            + str(games[(num - 1) * 5 + 2].num_room + 1)
-                            + " Online: "
-                            + str(games[(num - 1) * 5 + 2].players)
-                            + "/"
-                            + str(games[(num - 1) * 5 + 2].max_players),
-                        )
-                    else:
-                        room3 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            404,
-                            700,
-                            100,
-                            "ROOM ["
-                            + str((num - 1) * 5 + 3)
-                            + "] Online: 0/0",
-                        )
-                    red_raw_window(room3)
-                    if len(games) >= (num - 1) * 5 + 4:
-                        room4 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            506,
-                            700,
-                            100,
-                            "ROOM "
-                            + str(games[(num - 1) * 5 + 3].num_room + 1)
-                            + " Online: "
-                            + str(games[(num - 1) * 5 + 3].players)
-                            + "/"
-                            + str(games[(num - 1) * 5 + 3].max_players),
-                        )
-                    else:
-                        room4 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            506,
-                            700,
-                            100,
-                            "ROOM ["
-                            + str((num - 1) * 5 + 4)
-                            + "] Online: 0/0",
-                        )
-                    red_raw_window(room4)
-                    if len(games) >= (num - 1) * 5 + 5:
-                        room5 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            608,
-                            700,
-                            100,
-                            "ROOM "
-                            + str(games[(num - 1) * 5 + 4].num_room + 1)
-                            + " Online: "
-                            + str(games[(num - 1) * 5 + 4].players)
-                            + "/"
-                            + str(games[(num - 1) * 5 + 4].max_players),
-                        )
-                    else:
-                        room5 = button.Button(
-                            WHITE,
-                            WINDOW_WIDTH / 2 - 350,
-                            608,
-                            700,
-                            100,
-                            "ROOM ["
-                            + str((num - 1) * 5 + 5)
-                            + "] Online: 0/0",
-                        )
-                    red_raw_window(room5)
+            elif (
+                in_right_arrow
+                and in_arrow_y
+                and len(games) > num * ROOMS_PER_PAGE
+            ):
+                num += 1
+                room_buttons = draw_page(num)
                 pygame.display.update()
-
-        elif 25 < pos[0] < 25 + 250:
-            if 25 < pos[1] < 25 + 250:
+            elif (
+                BACK_BUTTON_X < pos[0] < BACK_BUTTON_X + BACK_BUTTON_SIZE
+                and BACK_BUTTON_Y < pos[1] < BACK_BUTTON_Y + BACK_BUTTON_SIZE
+            ):
                 back_to_menu = True
 
     elif event.type == pygame.MOUSEMOTION:
-        if room1.is_over(pos):
-            room1.color = LIGHT_GREY
-        else:
-            room1.color = WHITE
-        if room2.is_over(pos):
-            room2.color = LIGHT_GREY
-        else:
-            room2.color = WHITE
-        if room3.is_over(pos):
-            room3.color = LIGHT_GREY
-        else:
-            room3.color = WHITE
-        if room4.is_over(pos):
-            room4.color = LIGHT_GREY
-        else:
-            room4.color = WHITE
-        if room5.is_over(pos):
-            room5.color = LIGHT_GREY
-        else:
-            room5.color = WHITE
-        red_raw_window(room1)
-        red_raw_window(room2)
-        red_raw_window(room3)
-        red_raw_window(room4)
-        red_raw_window(room5)
+        for room_button in room_buttons:
+            room_button.color = (
+                LIGHT_GREY if room_button.is_over(pos) else WHITE
+            )
+            red_raw_window(room_button)
         pygame.display.update()
 
     if back_to_menu:
         return "OPEN_SCREEN"
-    elif do_choose:
+    if do_choose:
         join_game(choice)
     return "CHOOSE_A_ROOM", games_message, num
 

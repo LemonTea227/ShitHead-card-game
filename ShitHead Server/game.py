@@ -5,56 +5,73 @@ from typing import Optional
 Card = tuple[int, int]
 PlayerSocket = socket.socket
 
+VISIBLE_CARD_COUNT = 3
+FOUR_OF_A_KIND = 4
+CARD_VALUE_TWO = 2
+CARD_VALUE_THREE = 3
+CARD_VALUE_FOUR = 4
+CARD_VALUE_FIVE = 5
+CARD_VALUE_SIX = 6
+CARD_VALUE_SEVEN = 7
+CARD_VALUE_EIGHT = 8
+CARD_VALUE_NINE = 9
+CARD_VALUE_TEN = 10
+CARD_VALUE_JACK = 11
+CARD_VALUE_QUEEN = 12
+CARD_VALUE_KING = 13
+CARD_VALUE_ACE_LOW = 1
+CARD_VALUE_ACE_HIGH = 14
+
 
 def get_num(item: Card) -> int:
     return item[0]
 
 
 def sort_hand_viable(hand: list[Card], visible: list[Card]) -> None:
-    all = []
+    all_cards = []
     for i in range(len(hand)):
-        all.append(hand.pop(0))
+        all_cards.append(hand.pop(0))
     for i in range(len(visible)):
-        all.append(visible.pop(0))
-    for card in all:
-        if len(visible) < 3:
-            if card[0] == 10 or card[0] == 14:
+        all_cards.append(visible.pop(0))
+    for card in all_cards:
+        if len(visible) < VISIBLE_CARD_COUNT:
+            if card[0] == CARD_VALUE_TEN or card[0] == CARD_VALUE_ACE_HIGH:
                 visible.append(card)
-    for card in all:
-        if len(visible) < 3:
-            if card[0] == 2 or card[0] == 3:
+    for card in all_cards:
+        if len(visible) < VISIBLE_CARD_COUNT:
+            if card[0] == CARD_VALUE_TWO or card[0] == CARD_VALUE_THREE:
                 visible.append(card)
-    for card in all:
-        if len(visible) < 3:
-            if card[0] == 1:
+    for card in all_cards:
+        if len(visible) < VISIBLE_CARD_COUNT:
+            if card[0] == CARD_VALUE_ACE_LOW:
                 visible.append(card)
     for card in visible:
-        all.remove(card)
-    all = sorted(all, key=get_num)
-    while len(visible) < 3:
-        visible.append(all.pop())
-    while len(hand) < 3:
-        hand.append(all.pop())
+        all_cards.remove(card)
+    all_cards = sorted(all_cards, key=get_num)
+    while len(visible) < VISIBLE_CARD_COUNT:
+        visible.append(all_cards.pop())
+    while len(hand) < VISIBLE_CARD_COUNT:
+        hand.append(all_cards.pop())
 
 
 def sort_hand(hand: list[Card]) -> None:
-    h = []
+    remaining_cards = []
     for i in range(len(hand)):
-        h.append(hand.pop(0))
-    for card in h:
-        if card[0] == 10 or card[0] == 14:
+        remaining_cards.append(hand.pop(0))
+    for card in remaining_cards:
+        if card[0] == CARD_VALUE_TEN or card[0] == CARD_VALUE_ACE_HIGH:
             hand.append(card)
-    for card in h:
-        if card[0] == 2 or card[0] == 3:
+    for card in remaining_cards:
+        if card[0] == CARD_VALUE_TWO or card[0] == CARD_VALUE_THREE:
             hand.append(card)
-    for card in h:
-        if card[0] == 1:
+    for card in remaining_cards:
+        if card[0] == CARD_VALUE_ACE_LOW:
             hand.append(card)
     for card in hand:
-        h.remove(card)
-    h = sorted(h, key=get_num)
-    while h:
-        hand.append(h.pop())
+        remaining_cards.remove(card)
+    remaining_cards = sorted(remaining_cards, key=get_num)
+    while remaining_cards:
+        hand.append(remaining_cards.pop())
 
 
 class Game:
@@ -170,7 +187,7 @@ class Game:
             hand = []
             visible = []
             secret = []
-            for j in range(3):
+            for _ in range(VISIBLE_CARD_COUNT):
                 secret.append(self.__deck.pop())
                 visible.append(self.__deck.pop())
                 hand.append(self.__deck.pop())
@@ -235,7 +252,7 @@ class Game:
         :param to_who:
         :return: None
         """
-        if len(cards) < 4:
+        if len(cards) < FOUR_OF_A_KIND:
             if self.players[self.turn] == player:
                 change_turn = False
                 if (
@@ -246,7 +263,7 @@ class Game:
                     for card in cards:
                         if self.is_ok_to_throw(card[0]):
                             change_turn = True
-                            if card[0] == 14:
+                            if card[0] == CARD_VALUE_ACE_HIGH:
                                 if to_who != 0:
                                     self.give_deck(self.players[to_who - 1])
                                 else:
@@ -258,7 +275,7 @@ class Game:
                                     if (
                                         self.__deck
                                         and len(self.player_cards[player][2])
-                                        < 3
+                                        < VISIBLE_CARD_COUNT
                                     ):
                                         self.player_cards[player][2].append(
                                             self.__deck.pop()
@@ -272,7 +289,7 @@ class Game:
                                     if (
                                         self.__deck
                                         and len(self.player_cards[player][2])
-                                        < 3
+                                        < VISIBLE_CARD_COUNT
                                     ):
                                         self.player_cards[player][2].append(
                                             self.__deck.pop()
@@ -284,7 +301,7 @@ class Game:
                                     change_turn = False
                 elif self.player_cards[player][0] and not cards:
                     card = self.player_cards[player][0].pop()
-                    if card[0] == 14:
+                    if card[0] == CARD_VALUE_ACE_HIGH:
                         if to_who != 0:
                             self.give_deck(self.players[to_who - 1])
                         else:
@@ -312,7 +329,7 @@ class Game:
                     ):
                         change_turn = False
                         for card in cards:
-                            if card[0] == 4:
+                            if card[0] == CARD_VALUE_FOUR:
                                 change_turn = True
                                 self.effect_of_throw(card[0], player)
                                 if self.player_cards[player][2]:
@@ -320,7 +337,7 @@ class Game:
                                     if (
                                         self.__deck
                                         and len(self.player_cards[player][2])
-                                        < 3
+                                        < VISIBLE_CARD_COUNT
                                     ):
                                         self.player_cards[player][2].append(
                                             self.__deck.pop()
@@ -334,7 +351,7 @@ class Game:
                                 if self.players[i] == player:
                                     self.turn = i
                             self.change_turn(1)
-        elif len(cards) == 4:
+        elif len(cards) == FOUR_OF_A_KIND:
             for card in cards:
                 if self.player_cards[player][2]:
                     self.player_cards[player][2].remove(card)
@@ -344,7 +361,10 @@ class Game:
                     self.__out_deck.append(card)
             self.__out_deck.extend(self.__throw_deck)
             self.__throw_deck = []
-            while self.__deck and len(self.player_cards[player][2]) < 3:
+            while (
+                self.__deck
+                and len(self.player_cards[player][2]) < VISIBLE_CARD_COUNT
+            ):
                 self.player_cards[player][2].append(self.__deck.pop())
             for i in range(len(self.players)):
                 if self.players[i] == player:
@@ -404,44 +424,60 @@ class Game:
         :return: ok: True, not ok: False.
         """
         if self.__throw_deck:
-            if self.__throw_deck[-1][0] == 1 and (
-                card_number <= 3 or card_number == 10 or card_number == 14
+            if self.__throw_deck[-1][0] == CARD_VALUE_ACE_LOW and (
+                card_number <= CARD_VALUE_THREE
+                or card_number == CARD_VALUE_TEN
+                or card_number == CARD_VALUE_ACE_HIGH
             ):
                 return True
-            elif self.__throw_deck[-1][0] == 2:
+            elif self.__throw_deck[-1][0] == CARD_VALUE_TWO:
                 return True
-            elif self.__throw_deck[-1][0] == 3:
+            elif self.__throw_deck[-1][0] == CARD_VALUE_THREE:
                 last_card = self.__throw_deck.pop()
                 bool_ret = self.is_ok_to_throw(card_number)
                 self.__throw_deck.append(last_card)
                 return bool_ret
-            elif self.__throw_deck[-1][0] == 4:
+            elif self.__throw_deck[-1][0] == CARD_VALUE_FOUR:
                 return True
-            elif self.__throw_deck[-1][0] == 5 and (card_number != 4):
-                return True
-            elif self.__throw_deck[-1][0] == 6 and not (3 < card_number < 6):
-                return True
-            elif self.__throw_deck[-1][0] == 7 and (
-                1 < card_number <= 7 or card_number == 10 or card_number == 14
+            elif self.__throw_deck[-1][0] == CARD_VALUE_FIVE and (
+                card_number != CARD_VALUE_FOUR
             ):
                 return True
-            elif self.__throw_deck[-1][0] == 8 and not (3 < card_number < 8):
-                return True
-            elif self.__throw_deck[-1][0] == 9 and not (3 < card_number < 9):
-                return True
-            elif self.__throw_deck[-1][0] == 10:
-                return True
-            elif self.__throw_deck[-1][0] == 11 and not (3 < card_number < 10):
-                return True
-            elif self.__throw_deck[-1][0] == 12 and not (
-                3 < card_number < 10 or card_number == 11
+            elif self.__throw_deck[-1][0] == CARD_VALUE_SIX and not (
+                CARD_VALUE_THREE < card_number < CARD_VALUE_SIX
             ):
                 return True
-            elif self.__throw_deck[-1][0] == 13 and not (
-                3 < card_number < 10 or 11 < card_number < 13
+            elif self.__throw_deck[-1][0] == CARD_VALUE_SEVEN and (
+                CARD_VALUE_ACE_LOW < card_number <= CARD_VALUE_SEVEN
+                or card_number == CARD_VALUE_TEN
+                or card_number == CARD_VALUE_ACE_HIGH
             ):
                 return True
-            elif self.__throw_deck[-1][0] == 14:
+            elif self.__throw_deck[-1][0] == CARD_VALUE_EIGHT and not (
+                CARD_VALUE_THREE < card_number < CARD_VALUE_EIGHT
+            ):
+                return True
+            elif self.__throw_deck[-1][0] == CARD_VALUE_NINE and not (
+                CARD_VALUE_THREE < card_number < CARD_VALUE_NINE
+            ):
+                return True
+            elif self.__throw_deck[-1][0] == CARD_VALUE_TEN:
+                return True
+            elif self.__throw_deck[-1][0] == CARD_VALUE_JACK and not (
+                CARD_VALUE_THREE < card_number < CARD_VALUE_TEN
+            ):
+                return True
+            elif self.__throw_deck[-1][0] == CARD_VALUE_QUEEN and not (
+                CARD_VALUE_THREE < card_number < CARD_VALUE_TEN
+                or card_number == CARD_VALUE_JACK
+            ):
+                return True
+            elif self.__throw_deck[-1][0] == CARD_VALUE_KING and not (
+                CARD_VALUE_THREE < card_number < CARD_VALUE_TEN
+                or CARD_VALUE_JACK < card_number < CARD_VALUE_KING
+            ):
+                return True
+            elif self.__throw_deck[-1][0] == CARD_VALUE_ACE_HIGH:
                 return True
             else:
                 return False
@@ -455,16 +491,16 @@ class Game:
         :param player:
         :return:
         """
-        if not self.__throw_deck and card_number == 4:
+        if not self.__throw_deck and card_number == CARD_VALUE_FOUR:
             for i in range(len(self.players)):
                 if self.players[i] == player:
                     self.turn = i
                     self.change_turn(1)
             return False
-        if card_number == 8:
+        if card_number == CARD_VALUE_EIGHT:
             self.change_turn(1)
             return True
-        if card_number == 10:
+        if card_number == CARD_VALUE_TEN:
             self.__out_deck.extend(self.__throw_deck)
             self.__throw_deck = []
             for i in range(len(self.players)):
