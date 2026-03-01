@@ -11,12 +11,14 @@ SIZE_HEADER_FORMAT = "00000|"
 SIZE_HEADER_SIZE = len(SIZE_HEADER_FORMAT)
 TCP_DEBUG = False
 
-TextOrBytes = Union[str, bytes]
+TextOrBytes = Union[str, bytes, bytearray]
 
 
 def to_bytes(data: TextOrBytes) -> bytes:
     if isinstance(data, bytes):
         return data
+    if isinstance(data, bytearray):
+        return bytes(data)
     return str(data).encode("utf-8")
 
 
@@ -34,6 +36,9 @@ def recv_by_size(sock: socket.socket) -> str:
             return ""
         header += chunk
 
+    if header[-1:] != b"|":
+        logger.debug("recv_by_size: missing '|' delimiter in header")
+        return ""
     try:
         size_str = header[: SIZE_HEADER_SIZE - 1].decode("ascii")
         if not size_str.isdigit():
@@ -60,6 +65,12 @@ def recv_by_size(sock: socket.socket) -> str:
 
 def send_with_size(sock: socket.socket, data: TextOrBytes) -> None:
     payload = to_bytes(data)
+    # Maximum value that fits in SIZE_HEADER_SIZE-1 decimal digits
+    max_payload = 10 ** (SIZE_HEADER_SIZE - 1) - 1
+    if len(payload) > max_payload:
+        raise socket.error(
+            f"Payload too large: {len(payload)} bytes exceeds max {max_payload}"
+        )
     header = str(len(payload)).zfill(SIZE_HEADER_SIZE - 1) + "|"
     packet = header.encode("ascii") + payload
     sock.sendall(packet)
