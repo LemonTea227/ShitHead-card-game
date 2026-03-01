@@ -1,4 +1,5 @@
 import pygame
+from typing import Tuple
 
 PINK = (255, 20, 147)
 DIAMONDS = 1
@@ -66,7 +67,7 @@ CARDSIMAGES = {
 IMAGE_CACHE = {}
 
 
-def load_image(path):
+def load_image(path: str) -> pygame.Surface:
     image = IMAGE_CACHE.get(path)
     if image is None:
         image = pygame.image.load(path).convert()
@@ -76,7 +77,13 @@ def load_image(path):
 
 
 class Cards(pygame.sprite.Sprite):
-    def __init__(self, number, shape, x, y):
+    def __init__(
+        self,
+        number: int | None,
+        shape: int | None,
+        x: float,
+        y: float,
+    ) -> None:
         self.__shape = None
         self.__number = None
         self.__number = number
@@ -86,16 +93,16 @@ class Cards(pygame.sprite.Sprite):
         self.__image = load_image(CARDSIMAGES[(self.__number, self.__shape)])
         self.__special = number in (2, 3, 4, 7, 8, 10, 14)
 
-    def draw(self, win):
+    def draw(self, win: pygame.Surface) -> None:
         win.blit(self.__image, (self.x, self.y))
 
-    def get_number(self):
+    def get_number(self) -> int | None:
         return self.__number
 
-    def get_shape(self):
+    def get_shape(self) -> int | None:
         return self.__shape
 
-    def is_over(self, pos):
+    def is_over(self, pos: Tuple[float, float]) -> bool:
         # Pos is the mouse position or a tuple of (x,y) coordinates
         if self.x < pos[0] < self.x + 200:
             if self.y < pos[1] < self.y + 250:

@@ -1,4 +1,5 @@
 import pygame
+from typing import Optional
 
 PINK = (255, 20, 147)
 
@@ -7,8 +8,15 @@ class Button:
     _font = None
 
     def __init__(
-        self, color, x, y, width, height, text="", text_color=(0, 0, 0)
-    ):
+        self,
+        color: tuple[int, int, int],
+        x: float,
+        y: float,
+        width: float,
+        height: float,
+        text: str = "",
+        text_color: tuple[int, int, int] = (0, 0, 0),
+    ) -> None:
         self.color = color
         self.x = x
         self.y = y
@@ -17,7 +25,11 @@ class Button:
         self.text = text
         self.text_color = text_color
 
-    def draw(self, win, outline=None):
+    def draw(
+        self,
+        win: pygame.Surface,
+        outline: Optional[tuple[int, int, int]] = None,
+    ) -> None:
         # Call this method to draw the button on the screen
         if outline:
             pygame.draw.rect(
@@ -43,7 +55,7 @@ class Button:
                 ),
             )
 
-    def is_over(self, pos):
+    def is_over(self, pos: tuple[float, float]) -> bool:
         # Pos is the mouse position or a tuple of (x,y) coordinates
         if self.x < pos[0] < self.x + self.width:
             if self.y < pos[1] < self.y + self.height:

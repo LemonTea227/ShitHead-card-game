@@ -4,6 +4,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from typing import Sequence
 
 ROOT = Path(__file__).resolve().parent
 SERVER_DIR = ROOT / "ShitHead Server"
@@ -12,7 +13,7 @@ SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 22073
 
 
-def resolve_python_executable():
+def resolve_python_executable() -> str:
     windows_venv_python = ROOT / ".venv" / "Scripts" / "python.exe"
     unix_venv_python = ROOT / ".venv" / "bin" / "python"
 
@@ -23,11 +24,11 @@ def resolve_python_executable():
     return sys.executable
 
 
-def start_process(command, cwd):
+def start_process(command: Sequence[str], cwd: Path) -> subprocess.Popen:
     return subprocess.Popen(command, cwd=str(cwd))
 
 
-def terminate_process(process):
+def terminate_process(process: subprocess.Popen | None) -> None:
     if process is None or process.poll() is not None:
         return
     process.terminate()
@@ -37,13 +38,13 @@ def terminate_process(process):
         process.kill()
 
 
-def is_port_in_use(host, port):
+def is_port_in_use(host: str, port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
         sock.settimeout(0.5)
         return sock.connect_ex((host, port)) == 0
 
 
-def main():
+def main() -> None:
     python_executable = resolve_python_executable()
     server = None
     client_one = None
@@ -51,10 +52,8 @@ def main():
 
     if is_port_in_use(SERVER_HOST, SERVER_PORT):
         print(
-            "Port {} is already in use. Stop the existing server first."
-            .format(
-                SERVER_PORT
-            )
+            "Port {} is already in use. "
+            "Stop the existing server first.".format(SERVER_PORT)
         )
         return
 

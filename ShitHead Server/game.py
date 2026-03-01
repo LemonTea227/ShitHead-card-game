@@ -1,11 +1,16 @@
 import random
+import socket
+from typing import Optional
+
+Card = tuple[int, int]
+PlayerSocket = socket.socket
 
 
-def get_num(item):
+def get_num(item: Card) -> int:
     return item[0]
 
 
-def sort_hand_viable(hand, visible):
+def sort_hand_viable(hand: list[Card], visible: list[Card]) -> None:
     all = []
     for i in range(len(hand)):
         all.append(hand.pop(0))
@@ -32,7 +37,7 @@ def sort_hand_viable(hand, visible):
         hand.append(all.pop())
 
 
-def sort_hand(hand):
+def sort_hand(hand: list[Card]) -> None:
     h = []
     for i in range(len(hand)):
         h.append(hand.pop(0))
@@ -53,7 +58,12 @@ def sort_hand(hand):
 
 
 class Game:
-    def __init__(self, num_room, max_players, players=None):
+    def __init__(
+        self,
+        num_room: int,
+        max_players: int,
+        players: Optional[list[PlayerSocket]] = None,
+    ) -> None:
         if players is None:
             players = []
         self.num_room = num_room
@@ -118,12 +128,12 @@ class Game:
         self.__throw_deck = []
         self.__out_deck = []
         self.turn = 0
-        self.player_cards = {}
-        self.send_dict = {}
+        self.player_cards: dict[PlayerSocket, list[list[Card]]] = {}
+        self.send_dict: dict[PlayerSocket, list[str]] = {}
         self.started = False
         self.finished = False
 
-    def add_player(self, sock_player):
+    def add_player(self, sock_player: PlayerSocket) -> None:
         """
         this function is responsible for adding a player
         :param sock_player:
@@ -131,7 +141,7 @@ class Game:
         """
         self.players.append(sock_player)
 
-    def remove_player(self, sock_player):
+    def remove_player(self, sock_player: PlayerSocket) -> None:
         """
         this function is responsible for removing a player
         :param sock_player:
@@ -143,14 +153,14 @@ class Game:
             if self.started:
                 self.finish()
 
-    def shuffle_card(self):
+    def shuffle_card(self) -> None:
         """
         this function shuffles the deck she get to shuffle
         :return: shuffled deck
         """
         random.shuffle(self.__deck)
 
-    def start_game(self):
+    def start_game(self) -> None:
         """
         this function is responsible for starting a game
         :return:
@@ -172,7 +182,7 @@ class Game:
         self.started = True
         self.update()
 
-    def update(self):
+    def update(self) -> None:
         """
         this function is responsible for updating the players for a change in
         the board
@@ -215,7 +225,9 @@ class Game:
                 self.send_dict[player] = []
             self.send_dict[player].append(message)
 
-    def throw(self, player, cards, to_who):
+    def throw(
+        self, player: PlayerSocket, cards: list[Card], to_who: int
+    ) -> None:
         """
         this function is responsible for the throws of the players
         :param player:
@@ -339,7 +351,7 @@ class Game:
                     self.turn = i
         self.update()
 
-    def take_deck(self, player):
+    def take_deck(self, player: PlayerSocket) -> None:
         """
         this function is responsible for giving a player the throw deck
         :param player:
@@ -351,7 +363,7 @@ class Game:
             self.change_turn(1)
             self.update()
 
-    def give_deck(self, player):
+    def give_deck(self, player: PlayerSocket) -> None:
         """
         this function is responsible for giving a player the throw deck
         :param player:
@@ -363,7 +375,7 @@ class Game:
             self.change_turn(1)
             self.update()
 
-    def change_turn(self, times):
+    def change_turn(self, times: int) -> None:
         """
         this function is responsible for changing the turns
         :param times:
@@ -375,7 +387,7 @@ class Game:
             else:
                 self.turn += 1
 
-    def last_turn(self):
+    def last_turn(self) -> int:
         """
         this function is responsible for returning who was in the last turn
         :return:
@@ -385,7 +397,7 @@ class Game:
         else:
             return self.turn - 1
 
-    def is_ok_to_throw(self, card_number):
+    def is_ok_to_throw(self, card_number: int) -> bool:
         """
         this function is responsible for checking if it is ok to throw
         :param card_number:
@@ -436,7 +448,9 @@ class Game:
         else:
             return True
 
-    def effect_of_throw(self, card_number, player):
+    def effect_of_throw(
+        self, card_number: int, player: PlayerSocket
+    ) -> bool:
         """
         this function is responsible for making the effect of the throw
         :param card_number:
@@ -461,7 +475,7 @@ class Game:
             return False
         return True
 
-    def is_over(self):
+    def is_over(self) -> tuple[bool, PlayerSocket] | bool:
         """
         this function is responsible for checking if the game is over
         :return: ok: True, not ok: False.
@@ -478,7 +492,7 @@ class Game:
                     return player_finish
         return False
 
-    def finish(self):
+    def finish(self) -> None:
         """
         this function is responsible for checking if the game can't continue
         :return: None

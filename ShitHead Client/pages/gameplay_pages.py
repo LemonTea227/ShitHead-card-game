@@ -1,9 +1,18 @@
 import pygame
+from typing import TypeAlias
 
 from pages._client_ref import get_client_module
 
+MousePos: TypeAlias = tuple[float, float]
+ScreenState: TypeAlias = str | tuple[object, ...]
 
-def choose_a_room_menu(event, pos, games_message, page):
+
+def choose_a_room_menu(
+    event: pygame.event.Event,
+    pos: MousePos,
+    games_message: list[str],
+    page: int,
+) -> ScreenState:
     pc = get_client_module()
 
     game = pc.game
@@ -575,7 +584,13 @@ def choose_a_room_menu(event, pos, games_message, page):
     return "CHOOSE_A_ROOM", games_message, num
 
 
-def game_manager(event, pos, cards_message, cards_to_throw, to_who):
+def game_manager(
+    event: pygame.event.Event,
+    pos: MousePos,
+    cards_message: list[str],
+    cards_to_throw: list[object],
+    to_who: int,
+) -> ScreenState:
     pc = get_client_module()
     cards = pc.cards
     button = pc.button

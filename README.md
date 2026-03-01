@@ -34,8 +34,22 @@ Format all Python files from the project root:
 python -m black .
 ```
 
+## Linting
+
+Run the linter from the project root:
+
+```powershell
+python -m ruff check .
+```
+
+Optional autofix for safe fixes:
+
+```powershell
+python -m ruff check . --fix
+```
+
 ## Notes
 
-- The protocol uses custom size-prefixed TCP framing implemented in both `tcp_by_size.py` files.
+- The protocol uses shared size-prefixed TCP framing in `common/net_protocol.py`.
 - Client assets are loaded from `ShitHead Client/proj_pics`.
 - Client preferences are stored in `ShitHead Client/preferences.json`.

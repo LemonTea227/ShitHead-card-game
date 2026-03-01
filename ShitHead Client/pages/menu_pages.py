@@ -1,9 +1,20 @@
 import pygame
+from typing import Optional, TypeAlias
 
 from pages._client_ref import get_client_module
 
+MousePos: TypeAlias = tuple[float, float]
+ScreenState: TypeAlias = str | tuple[object, ...]
 
-def draw_wrapped_lines(font, lines, x, y, max_width, color):
+
+def draw_wrapped_lines(
+    font: pygame.font.Font,
+    lines: list[str],
+    x: float,
+    y: float,
+    max_width: float,
+    color: tuple[int, int, int],
+) -> float:
     pc = get_client_module()
     line_space = 4
     line_height = font.get_linesize()
@@ -27,7 +38,15 @@ def draw_wrapped_lines(font, lines, x, y, max_width, color):
     return current_y
 
 
-def draw_rules_section(x, y, width, height, title, lines, text_max_width=None):
+def draw_rules_section(
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    title: str,
+    lines: list[str],
+    text_max_width: Optional[float] = None,
+) -> None:
     pc = get_client_module()
     pygame.draw.rect(pc.screen, pc.LIGHT_GREY, (x, y, width, height), 0)
     pygame.draw.rect(pc.screen, pc.BLACK, (x, y, width, height), 3)
@@ -46,7 +65,7 @@ def draw_rules_section(x, y, width, height, title, lines, text_max_width=None):
     )
 
 
-def open_screen(event, pos):
+def open_screen(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     pc = get_client_module()
 
     img = pc.load_image(pc.BACKGROUND)
@@ -115,7 +134,7 @@ def open_screen(event, pos):
         else:
             rules.color = pc.WHITE
 
-    scrn = "OPEN_SCREEN"
+    scrn: ScreenState = "OPEN_SCREEN"
     if next_screen == "QUICK_GAME":
         preferences = str(pc.read_preferences_count())
         pc.SEND.append(str(next_screen) + "~" + str(preferences) + "~~~")
@@ -132,7 +151,7 @@ def open_screen(event, pos):
     return scrn
 
 
-def rules_menu(event, pos):
+def rules_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     pc = get_client_module()
 
     img = pc.load_image(pc.BACKGROUND)
@@ -261,7 +280,7 @@ def rules_menu(event, pos):
     return "RULES"
 
 
-def settings_menu(event, pos):
+def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     pc = get_client_module()
 
     img = pc.load_image(pc.BACKGROUND)
@@ -353,7 +372,9 @@ def settings_menu(event, pos):
         return "SETTINGS"
 
 
-def create_a_room_menu(event, pos, num):
+def create_a_room_menu(
+    event: pygame.event.Event, pos: MousePos, num: int
+) -> ScreenState:
     pc = get_client_module()
 
     img = pc.load_image(pc.BACKGROUND)
@@ -455,7 +476,13 @@ def create_a_room_menu(event, pos, num):
         return "CREATE_A_ROOM", num
 
 
-def wait_to_full(event, pos, room, p_now, people):
+def wait_to_full(
+    event: pygame.event.Event,
+    pos: MousePos,
+    room: int,
+    p_now: int,
+    people: int,
+) -> ScreenState:
     pc = get_client_module()
 
     if not p_now == people:
@@ -489,7 +516,9 @@ def wait_to_full(event, pos, room, p_now, people):
     return "WAITING", room, p_now, people
 
 
-def finish(event, pos, reason):
+def finish(
+    event: pygame.event.Event, pos: MousePos, reason: list[str]
+) -> ScreenState:
     pc = get_client_module()
 
     img = pc.load_image(pc.BACKGROUND)

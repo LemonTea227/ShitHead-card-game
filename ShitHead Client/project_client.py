@@ -5,6 +5,7 @@ import sys
 import threading
 from collections import deque
 from pathlib import Path
+from typing import Optional, Sequence, TypeAlias
 
 try:
     import pygame
@@ -47,9 +48,9 @@ from tcp_by_size import send_with_size, recv_by_size
 
 IP = "127.0.0.1"
 PORT = 22073
-SEND = deque()
-RECEIVE = deque()
-THREAD = []
+SEND: deque[str] = deque()
+RECEIVE: deque[str] = deque()
+THREAD: list[threading.Thread] = []
 BACKGROUND = "proj_pics/rainbow_background.jpg"  # 1700X956
 ICON = "proj_pics/ShitHead_icon_sized.png"  # 250X250
 SETTINGS = "proj_pics/settings.png"  # 128X128
@@ -68,14 +69,20 @@ LIGHT_GREY = (200, 200, 200)
 LEFT = 1
 SCROLL = 2
 RIGHT = 3
-screen = None
-window_screen = None
-IMAGE_CACHE = {}
-SCALED_IMAGE_CACHE = {}
+screen: Optional[pygame.Surface] = None
+window_screen: Optional[pygame.Surface] = None
+Color: TypeAlias = tuple[int, int, int]
+MousePos: TypeAlias = tuple[float, float]
+ScreenState: TypeAlias = str | tuple[object, ...]
+Colorkey: TypeAlias = Color | None
+IMAGE_CACHE: dict[tuple[str, Colorkey], pygame.Surface] = {}
+SCALED_IMAGE_CACHE: dict[
+    tuple[str, tuple[int, int], Colorkey], pygame.Surface
+] = {}
 PREFERENCES_JSON = "preferences.json"
 
 
-def load_image(path, colorkey=None):
+def load_image(path: str, colorkey: Colorkey = None) -> pygame.Surface:
     key = (path, colorkey)
     image = IMAGE_CACHE.get(key)
     if image is None:
@@ -86,7 +93,9 @@ def load_image(path, colorkey=None):
     return image
 
 
-def load_scaled_image(path, size, colorkey=None):
+def load_scaled_image(
+    path: str, size: tuple[int, int], colorkey: Colorkey = None
+) -> pygame.Surface:
     key = (path, size, colorkey)
     image = SCALED_IMAGE_CACHE.get(key)
     if image is None:
@@ -95,7 +104,7 @@ def load_scaled_image(path, size, colorkey=None):
     return image
 
 
-def window_to_virtual(pos):
+def window_to_virtual(pos: tuple[int, int]) -> tuple[float, float]:
     if window_screen is None:
         return pos
 
@@ -108,7 +117,7 @@ def window_to_virtual(pos):
     return pos[0] * scale_x, pos[1] * scale_y
 
 
-def render_to_window():
+def render_to_window() -> None:
     if window_screen is None:
         return
     win_w, win_h = window_screen.get_size()
@@ -117,7 +126,7 @@ def render_to_window():
     pygame.display.flip()
 
 
-def read_preferences_count(default=2):
+def read_preferences_count(default: int = 2) -> int:
     try:
         with open(PREFERENCES_JSON, "r", encoding="utf-8") as pref_file:
             data = json.load(pref_file)
@@ -127,7 +136,7 @@ def read_preferences_count(default=2):
         return default
 
 
-def write_preferences_count(num):
+def write_preferences_count(num: int) -> None:
     value = max(2, min(4, int(num)))
     data = {"quick_game_players": value}
 
@@ -135,7 +144,7 @@ def write_preferences_count(num):
         json.dump(data, pref_file, indent=2)
 
 
-def main():
+def main() -> None:
     # Init screen
     global screen, window_screen
     pygame.init()
@@ -201,7 +210,7 @@ def main():
     pygame.quit()
 
 
-def open_screen(event, pos):
+def open_screen(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     """
     this function is responsible for the opening screen
     :return: what screen to go to (GAME or CREATE or CHOOSE)
@@ -297,7 +306,14 @@ def open_screen(event, pos):
     return scrn
 
 
-def draw_wrapped_lines(font, lines, x, y, max_width, color):
+def draw_wrapped_lines(
+    font: pygame.font.Font,
+    lines: list[str],
+    x: float,
+    y: float,
+    max_width: float,
+    color: tuple[int, int, int],
+) -> float:
     line_space = 4
     line_height = font.get_linesize()
     current_y = y
@@ -320,7 +336,15 @@ def draw_wrapped_lines(font, lines, x, y, max_width, color):
     return current_y
 
 
-def draw_rules_section(x, y, width, height, title, lines, text_max_width=None):
+def draw_rules_section(
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    title: str,
+    lines: list[str],
+    text_max_width: Optional[float] = None,
+) -> None:
     pygame.draw.rect(screen, LIGHT_GREY, (x, y, width, height), 0)
     pygame.draw.rect(screen, BLACK, (x, y, width, height), 3)
 
@@ -336,7 +360,7 @@ def draw_rules_section(x, y, width, height, title, lines, text_max_width=None):
     draw_wrapped_lines(body_font, lines, x + 15, y + 65, text_max_width, BLACK)
 
 
-def rules_menu(event, pos):
+def rules_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     global screen
 
     img = load_image(BACKGROUND)
@@ -465,7 +489,7 @@ def rules_menu(event, pos):
     return "RULES"
 
 
-def settings_menu(event, pos):
+def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     """
     this function is responsible for the settings screen
     :return: None
@@ -556,7 +580,9 @@ def settings_menu(event, pos):
         return "SETTINGS"
 
 
-def create_a_room_menu(event, pos, num):
+def create_a_room_menu(
+    event: pygame.event.Event, pos: MousePos, num: int
+) -> ScreenState:
     """
     this function is responsible for creating a private room
     :return:
@@ -669,11 +695,16 @@ def create_a_room_menu(event, pos, num):
         return "CREATE_A_ROOM", num
 
 
-def choose_a_room_menu(event, pos, games_message, page):
+def choose_a_room_menu(
+    event: pygame.event.Event,
+    pos: MousePos,
+    games_message: list[str],
+    page: int,
+) -> ScreenState:
     return choose_room_page.choose_a_room_menu(event, pos, games_message, page)
 
 
-def join_game(room):
+def join_game(room: int) -> None:
     """
     this function is responsible for joining a game by num_game
     :param room:
@@ -682,7 +713,13 @@ def join_game(room):
     SEND.append("JOIN" + "~" + str(room) + "~~~")
 
 
-def wait_to_full(event, pos, room, p_now, people):
+def wait_to_full(
+    event: pygame.event.Event,
+    pos: MousePos,
+    room: int,
+    p_now: int,
+    people: int,
+) -> ScreenState:
     """
     this function is responsible for waiting screen
     :return: None
@@ -722,13 +759,21 @@ def wait_to_full(event, pos, room, p_now, people):
     return "WAITING", room, p_now, people
 
 
-def game_manager(event, pos, cards_message, cards_to_throw, to_who):
+def game_manager(
+    event: pygame.event.Event,
+    pos: MousePos,
+    cards_message: list[str],
+    cards_to_throw: list[cards.Cards],
+    to_who: int,
+) -> ScreenState:
     return game_page.game_manager(
         event, pos, cards_message, cards_to_throw, to_who
     )
 
 
-def finish(event, pos, reason):
+def finish(
+    event: pygame.event.Event, pos: MousePos, reason: list[str]
+) -> ScreenState:
     """
     this function is responsible for the finish screen
     :param event:
@@ -768,7 +813,7 @@ def finish(event, pos, reason):
         return "FINISH", reason[0]
 
 
-def async_send_receive(sock):
+def async_send_receive(sock: socket.socket) -> None:
     """
     this function is responsible for the sending and receiving with the server
     :param sock: the client's socket :type socket._socketobject
@@ -791,7 +836,12 @@ def async_send_receive(sock):
             break
 
 
-def event_handler(scrn, pos, event, more_args):
+def event_handler(
+    scrn: str,
+    pos: MousePos,
+    event: pygame.event.Event,
+    more_args: Sequence[object],
+) -> ScreenState | None:
     """
     this function is responsible for organizing the screens
     :param scrn:
@@ -826,7 +876,7 @@ def event_handler(scrn, pos, event, more_args):
         pass
 
 
-def receive_handler(recv):
+def receive_handler(recv: str) -> ScreenState | None:
     """
     this function is responsible for handeling with the received messages and
     adding messages to the SEND by the
@@ -857,12 +907,12 @@ def receive_handler(recv):
             return "WAITING", room, p_now, people
 
 
-def red_raw_window(bt):
+def red_raw_window(bt: button.Button) -> None:
     bt.draw(screen, (0, 0, 0))
     # pygame.display.update()
 
 
-def card_to_window(card):
+def card_to_window(card: cards.Cards) -> None:
     global screen
     card.draw(screen)
     # pygame.display.update()

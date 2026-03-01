@@ -4,7 +4,7 @@ import sys
 from pathlib import Path
 
 
-def resolve_python_executable(root):
+def resolve_python_executable(root: Path) -> str:
     candidates = [
         root / ".venv" / "Scripts" / "python.exe",
         root / ".venv" / "bin" / "python",
@@ -15,7 +15,7 @@ def resolve_python_executable(root):
     return sys.executable
 
 
-def main():
+def main() -> None:
     root = Path(__file__).resolve().parent
     client_dir = root / "ShitHead Client"
     client_entry = client_dir / "project_client.py"
