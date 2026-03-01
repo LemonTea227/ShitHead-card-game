@@ -282,6 +282,7 @@ def rules_menu(
             "2: Reset card, can be played freely.",
             "3: Transparent card, follows the previous card rule.",
             "4: Cut-in card, can be thrown out of turn when pile is empty.",
+            "7: Next play must be 7 or lower (or special cards that bypass).",
             "8: Skip next player.",
             "10: Burn the throw deck.",
             "Joker (14): Give throw deck to selected player "
@@ -302,6 +303,7 @@ def rules_menu(
         (2, pc.cards.DIAMONDS, "2"),
         (3, pc.cards.CLUBS, "3"),
         (4, pc.cards.HEARTS, "4"),
+        (7, pc.cards.HEARTS, "7"),
         (8, pc.cards.SPADES, "8"),
         (10, pc.cards.DIAMONDS, "10"),
         (14, pc.cards.SPADES, "Joker"),

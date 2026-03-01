@@ -61,11 +61,24 @@ def choose_a_room_menu(
     BACK_BUTTON_Y = 25
     BACK_BUTTON_SIZE = 250
 
+    def parse_room_entry(game_info: str) -> object | None:
+        info = game_info.split(",")
+        if len(info) != 3:
+            return None
+        try:
+            room_num = int(info[0])
+            players = int(info[1])
+            max_players = int(info[2])
+        except ValueError:
+            return None
+        if room_num < 0 or players < 0 or max_players <= 0:
+            return None
+        return game.Game(room_num, max_players, players)
+
     games = []
     for game_info in games_message:
-        info = game_info.split(",")
-        if len(info) == 3:
-            room = game.Game(int(info[0]), int(info[2]), int(info[1]))
+        room = parse_room_entry(game_info)
+        if room is not None:
             games.append(room)
 
     def get_room_text(page_number: int, slot_index: int) -> str:
@@ -120,7 +133,7 @@ def choose_a_room_menu(
     last_page = load_image(MOVE_LEFT, PINK)
     screen.blit(last_page, (LEFT_ARROW_X, ARROW_Y))
 
-    num = page
+    num = max(1, int(page))
     room_buttons = draw_page(num)
 
     next_page = load_image(MOVE_RIGHT, PINK)
