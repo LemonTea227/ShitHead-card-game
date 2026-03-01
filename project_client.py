@@ -27,6 +27,9 @@ def main() -> None:
 
     target_python = resolve_python_executable(root)
     os.chdir(str(client_dir))
+    client_dir_str = str(client_dir)
+    if client_dir_str not in sys.path:
+        sys.path.insert(0, client_dir_str)
     if Path(sys.executable).resolve() != Path(target_python).resolve():
         os.execv(
             target_python, [target_python, str(client_entry), *sys.argv[1:]]

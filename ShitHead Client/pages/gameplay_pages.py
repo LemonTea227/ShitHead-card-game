@@ -1,5 +1,6 @@
 import pygame
 from typing import TypeAlias
+import math
 
 import game
 from pages._client_ref import get_client_module
@@ -86,15 +87,10 @@ def choose_a_room_menu(
         if room is not None:
             games.append(room)
 
-    def get_room_text(page_number: int, slot_index: int) -> str:
-        room_index = (page_number - 1) * ROOMS_PER_PAGE + slot_index
-        if room_index < len(games):
-            room = games[room_index]
-            return (
-                f"ROOM {room.num_room + 1} Online: "
-                f"{room.players}/{room.max_players}"
-            )
-        return f"ROOM [{room_index + 1}] Online: 0/0"
+    def get_page_rooms(page_number: int) -> list[object]:
+        room_start = (page_number - 1) * ROOMS_PER_PAGE
+        room_end = room_start + ROOMS_PER_PAGE
+        return games[room_start:room_end]
 
     def draw_page(current_page: int) -> list[object]:
         page_label = button.Button(
@@ -107,18 +103,33 @@ def choose_a_room_menu(
         )
         red_raw_window(page_label)
 
+        current_page_rooms = get_page_rooms(current_page)
         room_buttons = []
-        for slot_index in range(ROOMS_PER_PAGE):
+        for slot_index, room in enumerate(current_page_rooms):
             room_button = button.Button(
                 WHITE,
                 ROOM_BUTTON_X,
                 ROOM_START_Y + slot_index * ROOM_Y_STEP,
                 ROOM_BUTTON_WIDTH,
                 ROOM_BUTTON_HEIGHT,
-                get_room_text(current_page, slot_index),
+                (
+                    f"ROOM {room.num_room + 1} Online: "
+                    f"{room.players}/{room.max_players}"
+                ),
             )
             red_raw_window(room_button)
             room_buttons.append(room_button)
+
+        if not current_page_rooms:
+            no_rooms_text = button.Button(
+                WHITE,
+                ROOM_BUTTON_X,
+                ROOM_START_Y,
+                ROOM_BUTTON_WIDTH,
+                ROOM_BUTTON_HEIGHT,
+                "No rooms available",
+            )
+            red_raw_window(no_rooms_text)
         return room_buttons
 
     img = load_image(pc.BACKGROUND)
@@ -138,8 +149,9 @@ def choose_a_room_menu(
     last_page = load_image(MOVE_LEFT, PINK)
     screen.blit(last_page, (LEFT_ARROW_X, ARROW_Y))
 
+    total_pages = max(1, int(math.ceil(len(games) / float(ROOMS_PER_PAGE))))
     try:
-        num = max(1, int(page))
+        num = max(1, min(total_pages, int(page)))
     except (TypeError, ValueError):
         num = 1
     room_buttons = draw_page(num)
@@ -159,16 +171,17 @@ def choose_a_room_menu(
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
         print("clicked: " + str(pos))
 
+        current_page_rooms = get_page_rooms(num)
         for slot_index, room_button in enumerate(room_buttons):
             if not room_button.is_over(pos):
                 continue
 
-            room_index = (num - 1) * ROOMS_PER_PAGE + slot_index
             if (
-                room_index < len(games)
-                and games[room_index].players != games[room_index].max_players
+                slot_index < len(current_page_rooms)
+                and current_page_rooms[slot_index].players
+                != current_page_rooms[slot_index].max_players
             ):
-                choice = games[room_index].num_room
+                choice = current_page_rooms[slot_index].num_room
                 do_choose = True
             break
         else:
@@ -182,11 +195,7 @@ def choose_a_room_menu(
                 num -= 1
                 room_buttons = draw_page(num)
                 pygame.display.update()
-            elif (
-                in_right_arrow
-                and in_arrow_y
-                and len(games) > num * ROOMS_PER_PAGE
-            ):
+            elif in_right_arrow and in_arrow_y and num < total_pages:
                 num += 1
                 room_buttons = draw_page(num)
                 pygame.display.update()

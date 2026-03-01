@@ -65,6 +65,32 @@ def quick_game(sock: socket.socket, preferences: int) -> None:
             quick_game(sock, preferences)
 
 
+def _send_waiting_update(room: game.Game) -> None:
+    for player in room.players:
+        SEND[player].append(
+            "UPDATE"
+            + "~"
+            + str(room.num_room)
+            + ","
+            + str(len(room.players))
+            + ","
+            + str(room.max_players)
+            + "~~~"
+        )
+
+
+def _cleanup_room_lists(room: game.Game) -> None:
+    should_remove = room.finished or len(room.players) == 0
+    if not should_remove:
+        return
+    if room in ONLINE_GAMES:
+        ONLINE_GAMES.remove(room)
+    if room in QUICK_GAMES:
+        QUICK_GAMES.remove(room)
+    if room in AVAILABLE_GAMES:
+        AVAILABLE_GAMES.remove(room)
+
+
 def choose_a_room(sock: socket.socket) -> None:
     """
     this function is responsible for sending all the games to the client
@@ -164,22 +190,12 @@ def join_private_game(sock: socket.socket, room: game.Game) -> bool:
         return False
     if room and sock not in room.players:
         room.add_player(sock)
-
-    for player in room.players:
-        SEND[player].append(
-            "UPDATE"
-            + "~"
-            + str(room.num_room)
-            + ","
-            + str(len(room.players))
-            + ","
-            + str(room.max_players)
-            + "~~~"
-        )
+    _send_waiting_update(room)
 
     if room.max_players == len(room.players) and not room.started:
         room.start_game()
-    while not room.finished:
+    cancelled_waiting = False
+    while not room.finished and not cancelled_waiting:
         try:
             if SEND[sock]:
                 send_with_size(sock, SEND[sock].pop(0))
@@ -194,6 +210,17 @@ def join_private_game(sock: socket.socket, room: game.Game) -> bool:
             data = recv_by_size(sock)
             if not data:
                 raise socket.error
+            message = _parse_message(data)
+            if (
+                not room.started
+                and message
+                and message[0].upper() == "WAITING"
+                and len(message) > 1
+                and message[1].upper() == "CANCEL"
+            ):
+                del_player_from_waiting(sock)
+                cancelled_waiting = True
+                continue
             receive_handler_thread = threading.Thread(
                 target=receive_game_handler,
                 args=(
@@ -213,10 +240,7 @@ def join_private_game(sock: socket.socket, room: game.Game) -> bool:
             if not room.started:
                 del_player_from_waiting(sock)
 
-    if room in ONLINE_GAMES:
-        ONLINE_GAMES.remove(room)
-    elif room in AVAILABLE_GAMES:
-        AVAILABLE_GAMES.remove(room)
+    _cleanup_room_lists(room)
 
     return True
 
@@ -236,23 +260,13 @@ def join_game(sock: socket.socket, room: game.Game) -> bool:
         return False
     if sock not in room.players:
         room.add_player(sock)
-
-    for player in room.players:
-        SEND[player].append(
-            "UPDATE"
-            + "~"
-            + str(room.num_room)
-            + ","
-            + str(len(room.players))
-            + ","
-            + str(room.max_players)
-            + "~~~"
-        )
+    _send_waiting_update(room)
 
     if room.max_players == len(room.players) and not room.started:
         room.start_game()
     finished = False
-    while not finished:
+    cancelled_waiting = False
+    while not finished and not cancelled_waiting:
         try:
             if SEND[sock]:
                 send_with_size(sock, SEND[sock].pop(0))
@@ -267,6 +281,17 @@ def join_game(sock: socket.socket, room: game.Game) -> bool:
             data = recv_by_size(sock)
             if not data:
                 raise socket.error
+            message = _parse_message(data)
+            if (
+                not room.started
+                and message
+                and message[0].upper() == "WAITING"
+                and len(message) > 1
+                and message[1].upper() == "CANCEL"
+            ):
+                del_player_from_waiting(sock)
+                cancelled_waiting = True
+                continue
             receive_handler_thread = threading.Thread(
                 target=receive_game_handler,
                 args=(
@@ -286,10 +311,7 @@ def join_game(sock: socket.socket, room: game.Game) -> bool:
             if not room.started:
                 del_player_from_waiting(sock)
 
-    if room in ONLINE_GAMES:
-        ONLINE_GAMES.remove(room)
-    elif room in QUICK_GAMES:
-        QUICK_GAMES.remove(room)
+    _cleanup_room_lists(room)
 
     return True
 
@@ -380,6 +402,8 @@ def del_player_from_waiting(sock: socket.socket) -> bool:
             room.players.remove(sock)
             if len(room.players) == 0:
                 QUICK_GAMES.remove(room)
+            else:
+                _send_waiting_update(room)
             found = True
             break
 
@@ -389,6 +413,8 @@ def del_player_from_waiting(sock: socket.socket) -> bool:
                 room.players.remove(sock)
                 if len(room.players) == 0:
                     AVAILABLE_GAMES.remove(room)
+                else:
+                    _send_waiting_update(room)
                 found = True
                 break
 

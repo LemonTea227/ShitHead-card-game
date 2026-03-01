@@ -291,13 +291,21 @@ def rules_menu(
         text_max_width=1200,
     )
 
-    pygame.draw.rect(pc.screen, pc.WHITE, (760, 1060 + y_shift, 900, 220), 0)
-    pygame.draw.rect(pc.screen, pc.BLACK, (760, 1060 + y_shift, 900, 220), 2)
+    panel_x = 760
+    panel_y = 1060 + y_shift
+    panel_width = 900
+    panel_height = 220
+    pygame.draw.rect(
+        pc.screen, pc.WHITE, (panel_x, panel_y, panel_width, panel_height), 0
+    )
+    pygame.draw.rect(
+        pc.screen, pc.BLACK, (panel_x, panel_y, panel_width, panel_height), 2
+    )
     panel_title_font = pygame.font.SysFont("calibri", 30)
     panel_title = panel_title_font.render(
         "Special cards shown in-game", 1, pc.PINK
     )
-    pc.screen.blit(panel_title, (790, 1074 + y_shift))
+    pc.screen.blit(panel_title, (panel_x + 30, panel_y + 14))
 
     special_card_specs = [
         (2, pc.cards.DIAMONDS, "2"),
@@ -309,17 +317,31 @@ def rules_menu(
         (14, pc.cards.SPADES, "Joker"),
     ]
     card_label_font = pygame.font.SysFont("calibri", 24)
-    start_x = 825
+    card_width = 82
+    card_height = 102
+    panel_padding = 24
+    available_width = panel_width - panel_padding * 2
+    total_card_width = card_width * len(special_card_specs)
+    card_gap = 0
+    if len(special_card_specs) > 1 and available_width > total_card_width:
+        card_gap = (available_width - total_card_width) // (
+            len(special_card_specs) - 1
+        )
+    content_width = total_card_width + card_gap * (len(special_card_specs) - 1)
+    start_x = panel_x + (panel_width - content_width) // 2
     for index, card_spec in enumerate(special_card_specs):
         num, shape, label = card_spec
         card_image = pc.load_scaled_image(
-            pc.cards.CARDSIMAGES[(num, shape)], (82, 102), pc.PINK
+            pc.cards.CARDSIMAGES[(num, shape)],
+            (card_width, card_height),
+            pc.PINK,
         )
-        draw_x = start_x + index * 130
-        draw_y = 1110 + y_shift
+        draw_x = start_x + index * (card_width + card_gap)
+        draw_y = panel_y + 50
         pc.screen.blit(card_image, (draw_x, draw_y))
         label_text = card_label_font.render(label, 1, pc.BLACK)
-        pc.screen.blit(label_text, (draw_x + 18, draw_y + 112))
+        label_x = draw_x + (card_width - label_text.get_width()) // 2
+        pc.screen.blit(label_text, (label_x, draw_y + card_height + 8))
 
     top_mask_rect = pygame.Rect(0, 0, pc.WINDOW_WIDTH, content_top)
     pygame.draw.rect(pc.screen, pc.LIGHT_GREY, top_mask_rect)
@@ -550,6 +572,15 @@ def wait_to_full(
 ) -> ScreenState:
     pc = get_client_module()
 
+    cancel_button = pc.button.Button(
+        pc.WHITE,
+        pc.WINDOW_WIDTH / 2 - 150,
+        pc.WINDOW_HEIGHT - 130,
+        300,
+        80,
+        "Cancel",
+    )
+
     if not p_now == people:
         img = pc.load_image(pc.BACKGROUND)
         pc.screen.blit(img, (0, 0))
@@ -577,6 +608,21 @@ def wait_to_full(
 
         pc.red_raw_window(rn)
         pc.red_raw_window(pn)
+        pc.red_raw_window(cancel_button)
+
+    cancel = False
+    if event.type == pygame.MOUSEBUTTONDOWN and event.button == pc.LEFT:
+        if cancel_button.is_over(pos):
+            cancel = True
+
+    if event.type == pygame.MOUSEMOTION:
+        cancel_button.color = (
+            pc.LIGHT_GREY if cancel_button.is_over(pos) else pc.WHITE
+        )
+
+    if cancel:
+        pc.SEND.append("WAITING~CANCEL~~~")
+        return "OPEN_SCREEN"
 
     return "WAITING", room, p_now, people
 
