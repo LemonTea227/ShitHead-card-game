@@ -856,6 +856,11 @@ def event_handler(
         return settings_page.settings_menu(event, pos)
     elif scrn == "RULES":
         return rules_page.rules_menu(event, pos)
+    elif scrn == "RULES_GAME":
+        next_screen = rules_page.rules_menu(event, pos, "GAME")
+        if next_screen == "GAME":
+            return "GAME", more_args[0], more_args[1], more_args[2]
+        return "RULES_GAME", more_args[0], more_args[1], more_args[2]
     elif scrn == "CHOOSE_A_ROOM":
         return choose_room_page.choose_a_room_menu(
             event, pos, more_args[0], more_args[1]

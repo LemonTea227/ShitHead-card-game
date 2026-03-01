@@ -5,6 +5,7 @@ from pages._client_ref import get_client_module
 
 MousePos: TypeAlias = tuple[float, float]
 ScreenState: TypeAlias = str | tuple[object, ...]
+RULES_SCROLL_OFFSET = 0
 
 
 def draw_wrapped_lines(
@@ -63,6 +64,31 @@ def draw_rules_section(
     draw_wrapped_lines(
         body_font, lines, x + 15, y + 65, text_max_width, pc.BLACK
     )
+
+
+def draw_page_top_bar(
+    title_text: str, header_height: int = 130
+) -> pygame.Rect:
+    pc = get_client_module()
+
+    pygame.draw.rect(
+        pc.screen, pc.LIGHT_GREY, (0, 0, pc.WINDOW_WIDTH, header_height)
+    )
+    pygame.draw.line(
+        pc.screen,
+        pc.BLACK,
+        (0, header_height),
+        (pc.WINDOW_WIDTH, header_height),
+        3,
+    )
+
+    title_font = pygame.font.SysFont("calibri", 54, bold=True)
+    title = title_font.render(title_text, 1, pc.PINK)
+    pc.screen.blit(title, (pc.WINDOW_WIDTH / 2 - title.get_width() / 2, 26))
+
+    back_button = pc.button.Button(pc.WHITE, 25, 26, 210, 72, "Back")
+    pc.red_raw_window(back_button)
+    return pygame.Rect(25, 26, 210, 72)
 
 
 def open_screen(event: pygame.event.Event, pos: MousePos) -> ScreenState:
@@ -151,22 +177,41 @@ def open_screen(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     return scrn
 
 
-def rules_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
+def rules_menu(
+    event: pygame.event.Event,
+    pos: MousePos,
+    return_screen: str = "OPEN_SCREEN",
+) -> ScreenState:
+    global RULES_SCROLL_OFFSET
+
     pc = get_client_module()
 
     img = pc.load_image(pc.BACKGROUND)
     pc.screen.blit(img, (0, 0))
 
-    title_font = pygame.font.SysFont("algerian", 64)
-    title = title_font.render("ShitHead - Official Rules", 1, pc.WHITE)
-    pc.screen.blit(title, (pc.WINDOW_WIDTH / 2 - title.get_width() / 2, 30))
+    header_height = 130
+    content_top = header_height + 20
+    content_bottom = pc.WINDOW_HEIGHT - 20
+    max_scroll_offset = 0
+    min_scroll_offset = -330
 
-    back_button = pc.load_image(pc.ICON, pc.PINK)
-    pc.screen.blit(back_button, (25, 25))
+    if event.type == pygame.MOUSEWHEEL:
+        RULES_SCROLL_OFFSET += event.y * 45
+    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 4:
+        RULES_SCROLL_OFFSET += 45
+    elif event.type == pygame.MOUSEBUTTONDOWN and event.button == 5:
+        RULES_SCROLL_OFFSET -= 45
+
+    if RULES_SCROLL_OFFSET > max_scroll_offset:
+        RULES_SCROLL_OFFSET = max_scroll_offset
+    if RULES_SCROLL_OFFSET < min_scroll_offset:
+        RULES_SCROLL_OFFSET = min_scroll_offset
+
+    y_shift = RULES_SCROLL_OFFSET
 
     draw_rules_section(
         60,
-        150,
+        170 + y_shift,
         760,
         220,
         "Setup Game",
@@ -179,7 +224,7 @@ def rules_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     )
     draw_rules_section(
         880,
-        150,
+        170 + y_shift,
         760,
         220,
         "Quick Play",
@@ -192,7 +237,7 @@ def rules_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     )
     draw_rules_section(
         60,
-        400,
+        430 + y_shift,
         760,
         220,
         "How To Play",
@@ -206,7 +251,7 @@ def rules_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     )
     draw_rules_section(
         880,
-        400,
+        430 + y_shift,
         760,
         220,
         "Win Condition",
@@ -218,9 +263,9 @@ def rules_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     )
     draw_rules_section(
         60,
-        650,
+        700 + y_shift,
         1580,
-        270,
+        320,
         "Special Cards",
         [
             "2: Reset card, can be played freely.",
@@ -231,23 +276,16 @@ def rules_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
             "Joker (14): Give throw deck to selected player "
             "(or previous player by default).",
         ],
-        text_max_width=900,
+        text_max_width=1200,
     )
 
-    pygame.draw.rect(pc.screen, pc.WHITE, (980, 720, 620, 180), 0)
-    pygame.draw.rect(pc.screen, pc.BLACK, (980, 720, 620, 180), 2)
-    panel_title_font = pygame.font.SysFont("calibri", 28)
+    pygame.draw.rect(pc.screen, pc.WHITE, (760, 1060 + y_shift, 900, 180), 0)
+    pygame.draw.rect(pc.screen, pc.BLACK, (760, 1060 + y_shift, 900, 180), 2)
+    panel_title_font = pygame.font.SysFont("calibri", 30)
     panel_title = panel_title_font.render(
         "Special cards shown in-game", 1, pc.PINK
     )
-    pc.screen.blit(panel_title, (1000, 730))
-
-    settings_small = pc.load_scaled_image(pc.SETTINGS, (90, 90), pc.PINK)
-    move_left_small = pc.load_scaled_image(pc.MOVE_LEFT, (80, 80), pc.PINK)
-    move_right_small = pc.load_scaled_image(pc.MOVE_RIGHT, (80, 80), pc.PINK)
-    pc.screen.blit(settings_small, (740, 210))
-    pc.screen.blit(move_left_small, (1220, 210))
-    pc.screen.blit(move_right_small, (1315, 210))
+    pc.screen.blit(panel_title, (790, 1074 + y_shift))
 
     special_card_specs = [
         (2, pc.cards.DIAMONDS, "2"),
@@ -258,26 +296,47 @@ def rules_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
         (14, pc.cards.SPADES, "Joker"),
     ]
     card_label_font = pygame.font.SysFont("calibri", 24)
-    start_x = 1005
+    start_x = 825
     for index, card_spec in enumerate(special_card_specs):
         num, shape, label = card_spec
         card_image = pc.load_scaled_image(
             pc.cards.CARDSIMAGES[(num, shape)], (82, 102), pc.PINK
         )
-        draw_x = start_x + index * 98
-        draw_y = 770
+        draw_x = start_x + index * 130
+        draw_y = 1110 + y_shift
         pc.screen.blit(card_image, (draw_x, draw_y))
         label_text = card_label_font.render(label, 1, pc.BLACK)
-        pc.screen.blit(label_text, (draw_x + 26, draw_y + 112))
+        pc.screen.blit(label_text, (draw_x + 18, draw_y + 112))
+
+    scroll_hint = pygame.font.SysFont("calibri", 28).render(
+        "Scroll to read more", 1, pc.WHITE
+    )
+    pc.screen.blit(
+        scroll_hint,
+        (
+            pc.WINDOW_WIDTH / 2 - scroll_hint.get_width() / 2,
+            content_bottom - 34,
+        ),
+    )
+
+    top_mask_rect = pygame.Rect(0, 0, pc.WINDOW_WIDTH, content_top)
+    pygame.draw.rect(pc.screen, pc.LIGHT_GREY, top_mask_rect)
+
+    back_rect = draw_page_top_bar("Official Rules", header_height)
 
     back = False
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == pc.LEFT:
-        if 25 < pos[0] < 25 + 250 and 25 < pos[1] < 25 + 250:
+        if back_rect.collidepoint(pos):
             back = True
 
     if back:
-        return "OPEN_SCREEN"
+        RULES_SCROLL_OFFSET = 0
+        return return_screen
     return "RULES"
+
+
+def draw_settings_top_bar(header_height: int = 140) -> None:
+    draw_page_top_bar("Quick Game Settings", header_height)
 
 
 def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
@@ -286,10 +345,16 @@ def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     img = pc.load_image(pc.BACKGROUND)
     pc.screen.blit(img, (0, 0))
 
+    header_height = 140
+    draw_settings_top_bar(header_height)
+
+    body_title_y = header_height + 30
+    controls_center_y = pc.WINDOW_HEIGHT / 2 + 65
+
     quick_game_settings = pc.button.Button(
         pc.PINK,
         pc.WINDOW_WIDTH / 2 - 350,
-        75,
+        body_title_y,
         700,
         100,
         "Quick Game Settings",
@@ -297,16 +362,19 @@ def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     number_of_players = pc.button.Button(
         pc.WHITE,
         pc.WINDOW_WIDTH / 2 - 350,
-        200,
+        body_title_y + 125,
         700,
         100,
         "Number Of Players",
     )
 
-    minus = pc.load_image(pc.MOVE_LEFT, pc.PINK)
-    pc.screen.blit(
-        minus,
-        (pc.WINDOW_WIDTH / 2 - 110 - 50 - 220, pc.WINDOW_HEIGHT / 2 - 115),
+    minus_button = pc.button.Button(
+        pc.WHITE,
+        pc.WINDOW_WIDTH / 2 - 110 - 50 - 170,
+        controls_center_y - 50,
+        120,
+        100,
+        "-",
     )
 
     num = pc.read_preferences_count()
@@ -314,57 +382,50 @@ def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     number = pc.button.Button(
         pc.WHITE,
         pc.WINDOW_WIDTH / 2 - 50,
-        pc.WINDOW_HEIGHT / 2 - 50,
+        controls_center_y - 50,
         100,
         100,
         str(num),
     )
 
-    plus = pc.load_image(pc.MOVE_RIGHT, pc.PINK)
-    pc.screen.blit(
-        plus, (pc.WINDOW_WIDTH / 2 + 110 + 50, pc.WINDOW_HEIGHT / 2 - 115)
+    plus_button = pc.button.Button(
+        pc.WHITE,
+        pc.WINDOW_WIDTH / 2 + 110 + 50,
+        controls_center_y - 50,
+        120,
+        100,
+        "+",
     )
 
-    back_button = pc.load_image(pc.ICON, pc.PINK)
-    pc.screen.blit(back_button, (25, 25))
-
     back = False
+    back_rect = pygame.Rect(25, 26, 210, 72)
     pc.red_raw_window(quick_game_settings)
     pc.red_raw_window(number_of_players)
+    pc.red_raw_window(minus_button)
     pc.red_raw_window(number)
+    pc.red_raw_window(plus_button)
 
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == pc.LEFT:
-        if (
-            pc.WINDOW_WIDTH / 2 - 110 - 50 - 220
-            < pos[0]
-            < pc.WINDOW_WIDTH / 2 - 110 - 50
-        ):
-            if (
-                pc.WINDOW_HEIGHT / 2 - 115
-                < pos[1]
-                < pc.WINDOW_HEIGHT / 2 - 115 + 230
-            ):
-                if num > 2:
-                    num -= 1
-                    pc.write_preferences_count(num)
+        if minus_button.is_over(pos):
+            if num > 2:
+                num -= 1
+                pc.write_preferences_count(num)
 
-        elif (
-            pc.WINDOW_WIDTH / 2 + 110 + 50
-            < pos[0]
-            < pc.WINDOW_WIDTH / 2 + 110 + 50 + 220
-        ):
-            if (
-                pc.WINDOW_HEIGHT / 2 - 115
-                < pos[1]
-                < pc.WINDOW_HEIGHT / 2 - 115 + 230
-            ):
-                if num < 4:
-                    num += 1
-                    pc.write_preferences_count(num)
+        elif plus_button.is_over(pos):
+            if num < 4:
+                num += 1
+                pc.write_preferences_count(num)
 
-        elif 25 < pos[0] < 25 + 250:
-            if 25 < pos[1] < 25 + 250:
-                back = True
+        elif back_rect.collidepoint(pos):
+            back = True
+
+    if event.type == pygame.MOUSEMOTION:
+        minus_button.color = (
+            pc.LIGHT_GREY if minus_button.is_over(pos) else pc.WHITE
+        )
+        plus_button.color = (
+            pc.LIGHT_GREY if plus_button.is_over(pos) else pc.WHITE
+        )
 
     if back:
         return "OPEN_SCREEN"
