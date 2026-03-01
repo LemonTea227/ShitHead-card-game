@@ -36,6 +36,10 @@ def terminate_process(process: subprocess.Popen | None) -> None:
         process.wait(timeout=5)
     except subprocess.TimeoutExpired:
         process.kill()
+        try:
+            process.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
 
 
 def is_port_in_use(host: str, port: int) -> bool:
