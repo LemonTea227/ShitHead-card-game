@@ -448,9 +448,7 @@ class Game:
         else:
             return True
 
-    def effect_of_throw(
-        self, card_number: int, player: PlayerSocket
-    ) -> bool:
+    def effect_of_throw(self, card_number: int, player: PlayerSocket) -> bool:
         """
         this function is responsible for making the effect of the throw
         :param card_number:

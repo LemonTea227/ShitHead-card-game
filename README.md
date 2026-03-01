@@ -5,8 +5,8 @@ Legacy client/server card game project modernized for Python 3.
 ## Requirements
 
 - Python 3.10+
-- `pip install -r requirements.txt`
-- `pip install -r requirements-dev.txt`
+- `pip install .`
+- `pip install .[dev]`
 
 ## Run
 
