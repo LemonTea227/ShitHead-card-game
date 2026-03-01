@@ -14,3 +14,6 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Legacy local preferences
+ShitHead Client/preferences.txt
