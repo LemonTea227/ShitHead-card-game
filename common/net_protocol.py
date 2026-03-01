@@ -103,9 +103,11 @@ def send_with_size(sock: socket.socket, data: TextOrBytes) -> None:
 
 def send_one_message(sock: socket.socket, data: TextOrBytes) -> None:
     payload = to_bytes(data)
+    if not payload:
+        raise socket.error("Cannot send empty payload")
     sock.sendall(struct.pack("!I", len(payload)) + payload)
 
-    if TCP_DEBUG and payload:
+    if TCP_DEBUG:
         text_payload = to_text(payload)
         preview = (
             text_payload if len(text_payload) <= 100 else text_payload[:100]
