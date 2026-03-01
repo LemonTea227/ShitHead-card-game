@@ -79,10 +79,10 @@ def send_one_message(sock: socket.socket, data: TextOrBytes) -> None:
         logger.debug("Sent(%s)>>>%s", len(payload), preview)
 
 
-def recv_one_message(sock: socket.socket) -> str | None:
+def recv_one_message(sock: socket.socket) -> str:
     len_section = _recv_amount(sock, 4)
     if not len_section:
-        return None
+        return ""
 
     (len_int,) = struct.unpack("I", len_section)
     len_int = socket.ntohl(len_int)

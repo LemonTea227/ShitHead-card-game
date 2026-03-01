@@ -26,12 +26,11 @@ def main() -> None:
         )
 
     target_python = resolve_python_executable(root)
+    os.chdir(str(server_dir))
     if Path(sys.executable).resolve() != Path(target_python).resolve():
         os.execv(
             target_python, [target_python, str(server_entry), *sys.argv[1:]]
         )
-
-    os.chdir(str(server_dir))
     runpy.run_path(str(server_entry), run_name="__main__")
 
 
