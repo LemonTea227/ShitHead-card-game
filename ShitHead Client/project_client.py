@@ -1,8 +1,34 @@
+import os
 import socket
+import sys
 import threading
 from collections import deque
+from pathlib import Path
 
-import pygame
+try:
+    import pygame
+except ModuleNotFoundError as import_error:
+    if (
+        import_error.name == "pygame"
+        and os.environ.get("SHITHEAD_VENV_BOOTSTRAPPED") != "1"
+    ):
+        root = Path(__file__).resolve().parents[1]
+        candidates = [
+            root / ".venv" / "Scripts" / "python.exe",
+            root / ".venv" / "bin" / "python",
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                os.environ["SHITHEAD_VENV_BOOTSTRAPPED"] = "1"
+                os.execv(
+                    str(candidate),
+                    [
+                        str(candidate),
+                        str(Path(__file__).resolve()),
+                        *sys.argv[1:],
+                    ],
+                )
+    raise
 
 import button
 import cards
