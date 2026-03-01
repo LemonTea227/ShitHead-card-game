@@ -6,7 +6,7 @@ Legacy client/server card game project modernized for Python 3.
 
 - Python 3.10+
 - `pip install .`
-- `pip install .[dev]`
+- `pip install ".[dev]"`
 
 ## Run
 
