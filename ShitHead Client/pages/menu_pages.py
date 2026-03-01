@@ -76,12 +76,10 @@ def draw_page_top_bar(
     pygame.draw.rect(
         pc.screen, pc.LIGHT_GREY, (0, 0, pc.WINDOW_WIDTH, header_height)
     )
-    pygame.draw.line(
+    pygame.draw.rect(
         pc.screen,
         pc.BLACK,
-        (0, header_height - 1),
-        (pc.WINDOW_WIDTH, header_height - 1),
-        3,
+        (0, header_height - 1, pc.WINDOW_WIDTH, 3),
     )
 
     title_font = pygame.font.SysFont("calibri", 54, bold=True)
@@ -203,7 +201,7 @@ def rules_menu(
     pc.screen.blit(img, (0, 0))
 
     header_height = 130
-    content_top = header_height + 20
+    content_top = header_height
     max_scroll_offset = 0
     min_scroll_offset = -330
     scroll_step = 24
