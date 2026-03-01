@@ -34,7 +34,15 @@ def to_text(data: TextOrBytes) -> str:
 def recv_by_size(sock: socket.socket) -> str:
     header = b""
     while len(header) < SIZE_HEADER_SIZE:
-        chunk = sock.recv(SIZE_HEADER_SIZE - len(header))
+        try:
+            chunk = sock.recv(SIZE_HEADER_SIZE - len(header))
+        except socket.timeout:
+            if not header:
+                # No bytes received yet; propagate so callers can do
+                # periodic checks (e.g., test a quit flag).
+                raise
+            # Partial header in buffer – retry to avoid stream desync.
+            continue
         if not chunk:
             return ""
         header += chunk
@@ -51,7 +59,12 @@ def recv_by_size(sock: socket.socket) -> str:
         return ""
     data = bytearray()
     while len(data) < data_len:
-        chunk = sock.recv(data_len - len(data))
+        try:
+            chunk = sock.recv(data_len - len(data))
+        except socket.timeout:
+            # Header/frame already partially consumed; retry to avoid stream
+            # desync even if no payload bytes have been received yet.
+            continue
         if not chunk:
             return ""
         data.extend(chunk)
@@ -121,7 +134,15 @@ def _recv_amount(sock: socket.socket, size: int) -> bytes | None:
     buffer = bytearray()
     remaining = size
     while remaining:
-        new_buffer = sock.recv(remaining)
+        try:
+            new_buffer = sock.recv(remaining)
+        except socket.timeout:
+            if not buffer:
+                # No bytes received yet; propagate so callers can do
+                # periodic checks (e.g., test a quit flag).
+                raise
+            # Partial read in progress – retry to avoid stream desync.
+            continue
         if not new_buffer:
             return None
         buffer.extend(new_buffer)
