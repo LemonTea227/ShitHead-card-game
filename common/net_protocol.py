@@ -62,7 +62,8 @@ def recv_by_size(sock: socket.socket) -> str:
         try:
             chunk = sock.recv(data_len - len(data))
         except socket.timeout:
-            # Partial payload in buffer – retry to avoid stream desync.
+            # Header/frame already partially consumed; retry to avoid stream
+            # desync even if no payload bytes have been received yet.
             continue
         if not chunk:
             return ""
