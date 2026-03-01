@@ -34,13 +34,19 @@ def recv_by_size(sock: socket.socket) -> str:
             return ""
         header += chunk
 
-    data_len = int(header[: SIZE_HEADER_SIZE - 1].decode("ascii"))
-    data = b""
+    try:
+        size_str = header[: SIZE_HEADER_SIZE - 1].decode("ascii")
+        if not size_str.isdigit():
+            return ""
+        data_len = int(size_str)
+    except (UnicodeDecodeError, ValueError):
+        return ""
+    data = bytearray()
     while len(data) < data_len:
         chunk = sock.recv(data_len - len(data))
         if not chunk:
             return ""
-        data += chunk
+        data.extend(chunk)
 
     if data_len != len(data):
         return ""
@@ -98,11 +104,12 @@ def recv_one_message(sock: socket.socket) -> str:
 
 
 def _recv_amount(sock: socket.socket, size: int) -> bytes | None:
-    buffer = b""
-    while size:
-        new_buffer = sock.recv(size)
+    buffer = bytearray()
+    remaining = size
+    while remaining:
+        new_buffer = sock.recv(remaining)
         if not new_buffer:
             return None
-        buffer += new_buffer
-        size -= len(new_buffer)
-    return buffer
+        buffer.extend(new_buffer)
+        remaining -= len(new_buffer)
+    return bytes(buffer)
