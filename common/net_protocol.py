@@ -25,7 +25,10 @@ def to_bytes(data: TextOrBytes) -> bytes:
 def to_text(data: TextOrBytes) -> str:
     if isinstance(data, str):
         return data
-    return data.decode("utf-8")
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise socket.error("Failed to decode payload as UTF-8") from exc
 
 
 def recv_by_size(sock: socket.socket) -> str:
@@ -65,6 +68,8 @@ def recv_by_size(sock: socket.socket) -> str:
 
 def send_with_size(sock: socket.socket, data: TextOrBytes) -> None:
     payload = to_bytes(data)
+    if not payload:
+        raise socket.error("Cannot send empty payload")
     # Maximum value that fits in SIZE_HEADER_SIZE-1 decimal digits
     max_payload = 10 ** (SIZE_HEADER_SIZE - 1) - 1
     if len(payload) > max_payload:
