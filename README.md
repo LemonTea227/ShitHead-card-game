@@ -38,3 +38,4 @@ python -m black .
 
 - The protocol uses custom size-prefixed TCP framing implemented in both `tcp_by_size.py` files.
 - Client assets are loaded from `ShitHead Client/proj_pics`.
+- Client preferences are stored in `ShitHead Client/preferences.json`.

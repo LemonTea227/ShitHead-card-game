@@ -117,20 +117,13 @@ def open_screen(event, pos):
 
     scrn = "OPEN_SCREEN"
     if next_screen == "QUICK_GAME":
-        preferences = ""
-        with open("preferences.txt", "r") as f:
-            preferences += f.read()
+        preferences = str(pc.read_preferences_count())
         pc.SEND.append(str(next_screen) + "~" + str(preferences) + "~~~")
     elif next_screen == "CHOOSE_A_ROOM":
         pc.SEND.append("SCREEN~CHOOSE_A_ROOM~~~")
         scrn = "OPEN_SCREEN"
     elif next_screen == "CREATE_A_ROOM":
-        num = 0
-        try:
-            with open("preferences.txt", "r") as f:
-                num = int(f.read())
-        except IOError:
-            num = 2
+        num = pc.read_preferences_count()
         scrn = "CREATE_A_ROOM", num
     elif next_screen == "SETTINGS":
         scrn = "SETTINGS"
@@ -297,12 +290,7 @@ def settings_menu(event, pos):
         (pc.WINDOW_WIDTH / 2 - 110 - 50 - 220, pc.WINDOW_HEIGHT / 2 - 115),
     )
 
-    num = 0
-    try:
-        with open("preferences.txt", "r") as f:
-            num = int(f.read())
-    except IOError:
-        num = 2
+    num = pc.read_preferences_count()
 
     number = pc.button.Button(
         pc.WHITE,
@@ -339,8 +327,7 @@ def settings_menu(event, pos):
             ):
                 if num > 2:
                     num -= 1
-                    with open("preferences.txt", "w") as f:
-                        f.write(str(num))
+                    pc.write_preferences_count(num)
 
         elif (
             pc.WINDOW_WIDTH / 2 + 110 + 50
@@ -354,8 +341,7 @@ def settings_menu(event, pos):
             ):
                 if num < 4:
                     num += 1
-                    with open("preferences.txt", "w") as f:
-                        f.write(str(num))
+                    pc.write_preferences_count(num)
 
         elif 25 < pos[0] < 25 + 250:
             if 25 < pos[1] < 25 + 250:

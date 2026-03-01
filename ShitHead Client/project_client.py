@@ -1,4 +1,5 @@
 import os
+import json
 import socket
 import sys
 import threading
@@ -71,6 +72,7 @@ screen = None
 window_screen = None
 IMAGE_CACHE = {}
 SCALED_IMAGE_CACHE = {}
+PREFERENCES_JSON = "preferences.json"
 
 
 def load_image(path, colorkey=None):
@@ -113,6 +115,24 @@ def render_to_window():
     scaled = pygame.transform.smoothscale(screen, (win_w, win_h))
     window_screen.blit(scaled, (0, 0))
     pygame.display.flip()
+
+
+def read_preferences_count(default=2):
+    try:
+        with open(PREFERENCES_JSON, "r", encoding="utf-8") as pref_file:
+            data = json.load(pref_file)
+            value = int(data.get("quick_game_players", default))
+            return max(2, min(4, value))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return default
+
+
+def write_preferences_count(num):
+    value = max(2, min(4, int(num)))
+    data = {"quick_game_players": value}
+
+    with open(PREFERENCES_JSON, "w", encoding="utf-8") as pref_file:
+        json.dump(data, pref_file, indent=2)
 
 
 def main():
@@ -262,20 +282,13 @@ def open_screen(event, pos):
 
     scrn = "OPEN_SCREEN"
     if next_screen == "QUICK_GAME":
-        preferences = ""
-        with open("preferences.txt", "r") as f:
-            preferences += f.read()
+        preferences = str(read_preferences_count())
         SEND.append(str(next_screen) + "~" + str(preferences) + "~~~")
     elif next_screen == "CHOOSE_A_ROOM":
         SEND.append("SCREEN~CHOOSE_A_ROOM~~~")
         scrn = "OPEN_SCREEN"
     elif next_screen == "CREATE_A_ROOM":
-        num = 0
-        try:
-            with open("preferences.txt", "r") as f:
-                num = int(f.read())
-        except IOError:
-            num = 2
+        num = read_preferences_count()
         scrn = "CREATE_A_ROOM", num
     elif next_screen == "SETTINGS":
         scrn = "SETTINGS"
@@ -475,12 +488,7 @@ def settings_menu(event, pos):
         minus, (WINDOW_WIDTH / 2 - 110 - 50 - 220, WINDOW_HEIGHT / 2 - 115)
     )
 
-    num = 0
-    try:
-        with open("preferences.txt", "r") as f:
-            num = int(f.read())
-    except IOError:
-        num = 2
+    num = read_preferences_count()
 
     number = button.Button(
         WHITE,
@@ -516,8 +524,7 @@ def settings_menu(event, pos):
             ):
                 if num > 2:
                     num -= 1
-                    with open("preferences.txt", "w") as f:
-                        f.write(str(num))
+                    write_preferences_count(num)
                     # number = button.Button(WHITE, WINDOW_WIDTH / 2 - 50,
                     # WINDOW_HEIGHT / 2 - 50, 100, 100,
                     #                       str(num))
@@ -534,8 +541,7 @@ def settings_menu(event, pos):
             ):
                 if num < 4:
                     num += 1
-                    with open("preferences.txt", "w") as f:
-                        f.write(str(num))
+                    write_preferences_count(num)
                     # number = button.Button(WHITE, WINDOW_WIDTH / 2 - 50,
                     # WINDOW_HEIGHT / 2 - 50, 100, 100,
                     #                       str(num))
