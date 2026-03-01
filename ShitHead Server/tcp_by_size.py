@@ -26,7 +26,7 @@ def recv_by_size(sock):
             return ""
         header += chunk
 
-    data_len = int(header[:size_header_size - 1].decode("ascii"))
+    data_len = int(header[: size_header_size - 1].decode("ascii"))
     data = b""
     while len(data) < data_len:
         chunk = sock.recv(data_len - len(data))
@@ -74,7 +74,7 @@ def recv_one_message(sock):
     if not len_section:
         return None
 
-    len_int, = struct.unpack("I", len_section)
+    (len_int,) = struct.unpack("I", len_section)
     len_int = socket.ntohl(len_int)
     data = __recv_amount(sock, len_int)
     if data is None or len_int != len(data):

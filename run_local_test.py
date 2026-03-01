@@ -30,12 +30,21 @@ def main():
     client_two = None
 
     try:
-        server = start_process([python_executable, "project_server.py"], SERVER_DIR)
+        server = start_process(
+            [python_executable, "project_server.py"],
+            SERVER_DIR,
+        )
         time.sleep(1.0)
 
-        client_one = start_process([python_executable, "project_client.py"], CLIENT_DIR)
+        client_one = start_process(
+            [python_executable, "project_client.py"],
+            CLIENT_DIR,
+        )
         time.sleep(0.5)
-        client_two = start_process([python_executable, "project_client.py"], CLIENT_DIR)
+        client_two = start_process(
+            [python_executable, "project_client.py"],
+            CLIENT_DIR,
+        )
 
         print("Started server and two clients. Press Ctrl+C to stop all.")
 

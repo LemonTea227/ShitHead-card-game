@@ -59,14 +59,62 @@ class Game:
         self.num_room = num_room
         self.max_players = max_players
         self.players = players
-        self.__deck = [(1, 1), (2, 1), (3, 1), (4, 1), (5, 1), (6, 1), (7, 1), (8, 1), (9, 1), (10, 1), (11, 1),
-                       (12, 1),
-                       (13, 1), (14, 1), (1, 2), (2, 2), (3, 2), (4, 2), (5, 2), (6, 2), (7, 2), (8, 2), (9, 2),
-                       (10, 2),
-                       (11, 2), (12, 2), (13, 2), (1, 3), (2, 3), (3, 3), (4, 3), (5, 3), (6, 3), (7, 3), (8, 3),
-                       (9, 3),
-                       (10, 3), (11, 3), (12, 3), (13, 3), (1, 4), (2, 4), (3, 4), (4, 4), (5, 4), (6, 4), (7, 4),
-                       (8, 4), (9, 4), (10, 4), (11, 4), (12, 4), (13, 4), (14, 4)]
+        self.__deck = [
+            (1, 1),
+            (2, 1),
+            (3, 1),
+            (4, 1),
+            (5, 1),
+            (6, 1),
+            (7, 1),
+            (8, 1),
+            (9, 1),
+            (10, 1),
+            (11, 1),
+            (12, 1),
+            (13, 1),
+            (14, 1),
+            (1, 2),
+            (2, 2),
+            (3, 2),
+            (4, 2),
+            (5, 2),
+            (6, 2),
+            (7, 2),
+            (8, 2),
+            (9, 2),
+            (10, 2),
+            (11, 2),
+            (12, 2),
+            (13, 2),
+            (1, 3),
+            (2, 3),
+            (3, 3),
+            (4, 3),
+            (5, 3),
+            (6, 3),
+            (7, 3),
+            (8, 3),
+            (9, 3),
+            (10, 3),
+            (11, 3),
+            (12, 3),
+            (13, 3),
+            (1, 4),
+            (2, 4),
+            (3, 4),
+            (4, 4),
+            (5, 4),
+            (6, 4),
+            (7, 4),
+            (8, 4),
+            (9, 4),
+            (10, 4),
+            (11, 4),
+            (12, 4),
+            (13, 4),
+            (14, 4),
+        ]
         self.__throw_deck = []
         self.__out_deck = []
         self.turn = 0
@@ -126,38 +174,43 @@ class Game:
 
     def update(self):
         """
-        this function is responsible for updating the players for a change in the board
+        this function is responsible for updating the players for a change in
+        the board
         :return: None
         """
         for player in self.players:
             sort_hand(self.player_cards[player][2])
         for player in self.players:
-            message = 'GAME~UPDATE~' + str(len(self.__deck)) + '~'
+            message = "GAME~UPDATE~" + str(len(self.__deck)) + "~"
             if self.__throw_deck:
-                message += str(self.__throw_deck[-1][0]) + ',' + str(self.__throw_deck[-1][1])
+                message += (
+                    str(self.__throw_deck[-1][0])
+                    + ","
+                    + str(self.__throw_deck[-1][1])
+                )
             else:
-                message += '0,0'
-            message += '~Hand:'
+                message += "0,0"
+            message += "~Hand:"
             for card in self.player_cards[player][2]:
-                message += str(card[0]) + ',' + str(card[1]) + '|'
-            message += '~Visible:'
+                message += str(card[0]) + "," + str(card[1]) + "|"
+            message += "~Visible:"
             for card in self.player_cards[player][1]:
-                message += str(card[0]) + ',' + str(card[1]) + '|'
-            message += '~Secret:' + str(len(self.player_cards[player][0]))
-            message += '~Turn:' + str(self.turn)
+                message += str(card[0]) + "," + str(card[1]) + "|"
+            message += "~Secret:" + str(len(self.player_cards[player][0]))
+            message += "~Turn:" + str(self.turn)
             for p in self.players:
                 if p != player:
                     num_p = 0
                     for i in range(len(self.players)):
                         if self.players[i] == p:
                             num_p = i
-                    message += '~Player:' + str(num_p + 1)
-                    message += '~Hand:' + str(len(self.player_cards[p][2]))
-                    message += '~Visible:'
+                    message += "~Player:" + str(num_p + 1)
+                    message += "~Hand:" + str(len(self.player_cards[p][2]))
+                    message += "~Visible:"
                     for card in self.player_cards[p][1]:
-                        message += str(card[0]) + ',' + str(card[1]) + '|'
-                    message += '~Secret:' + str(len(self.player_cards[p][0]))
-            message += '~~~'
+                        message += str(card[0]) + "," + str(card[1]) + "|"
+                    message += "~Secret:" + str(len(self.player_cards[p][0]))
+            message += "~~~"
             if player not in self.send_dict:
                 self.send_dict[player] = []
             self.send_dict[player].append(message)
@@ -173,7 +226,11 @@ class Game:
         if len(cards) < 4:
             if self.players[self.turn] == player:
                 change_turn = False
-                if self.player_cards[player][2] or self.player_cards[player][1] and cards != []:
+                if (
+                    self.player_cards[player][2]
+                    or self.player_cards[player][1]
+                    and cards != []
+                ):
                     for card in cards:
                         if self.is_ok_to_throw(card[0]):
                             change_turn = True
@@ -181,19 +238,33 @@ class Game:
                                 if to_who != 0:
                                     self.give_deck(self.players[to_who - 1])
                                 else:
-                                    self.give_deck(self.players[self.last_turn()])
+                                    self.give_deck(
+                                        self.players[self.last_turn()]
+                                    )
                                 if self.player_cards[player][2]:
                                     self.player_cards[player][2].remove(card)
-                                    if self.__deck and len(self.player_cards[player][2]) < 3:
-                                        self.player_cards[player][2].append(self.__deck.pop())
+                                    if (
+                                        self.__deck
+                                        and len(self.player_cards[player][2])
+                                        < 3
+                                    ):
+                                        self.player_cards[player][2].append(
+                                            self.__deck.pop()
+                                        )
                                 elif self.player_cards[player][1]:
                                     self.player_cards[player][1].remove(card)
                                 self.__out_deck.append(card)
                             else:
                                 if self.player_cards[player][2]:
                                     self.player_cards[player][2].remove(card)
-                                    if self.__deck and len(self.player_cards[player][2]) < 3:
-                                        self.player_cards[player][2].append(self.__deck.pop())
+                                    if (
+                                        self.__deck
+                                        and len(self.player_cards[player][2])
+                                        < 3
+                                    ):
+                                        self.player_cards[player][2].append(
+                                            self.__deck.pop()
+                                        )
                                 elif self.player_cards[player][1]:
                                     self.player_cards[player][1].remove(card)
                                 self.__throw_deck.append(card)
@@ -222,7 +293,11 @@ class Game:
                     self.finish()
             else:
                 if not self.__throw_deck:
-                    if self.player_cards[player][2] or self.player_cards[player][1] and cards != []:
+                    if (
+                        self.player_cards[player][2]
+                        or self.player_cards[player][1]
+                        and cards != []
+                    ):
                         change_turn = False
                         for card in cards:
                             if card[0] == 4:
@@ -230,8 +305,14 @@ class Game:
                                 self.effect_of_throw(card[0], player)
                                 if self.player_cards[player][2]:
                                     self.player_cards[player][2].remove(card)
-                                    if self.__deck and len(self.player_cards[player][2]) < 3:
-                                        self.player_cards[player][2].append(self.__deck.pop())
+                                    if (
+                                        self.__deck
+                                        and len(self.player_cards[player][2])
+                                        < 3
+                                    ):
+                                        self.player_cards[player][2].append(
+                                            self.__deck.pop()
+                                        )
                                 elif self.player_cards[player][1]:
                                     self.player_cards[player][1].remove(card)
                                 self.__throw_deck.append(card)
@@ -311,7 +392,9 @@ class Game:
         :return: ok: True, not ok: False.
         """
         if self.__throw_deck:
-            if self.__throw_deck[-1][0] == 1 and (card_number <= 3 or card_number == 10 or card_number == 14):
+            if self.__throw_deck[-1][0] == 1 and (
+                card_number <= 3 or card_number == 10 or card_number == 14
+            ):
                 return True
             elif self.__throw_deck[-1][0] == 2:
                 return True
@@ -326,7 +409,9 @@ class Game:
                 return True
             elif self.__throw_deck[-1][0] == 6 and not (3 < card_number < 6):
                 return True
-            elif self.__throw_deck[-1][0] == 7 and (1 < card_number <= 7 or card_number == 10 or card_number == 14):
+            elif self.__throw_deck[-1][0] == 7 and (
+                1 < card_number <= 7 or card_number == 10 or card_number == 14
+            ):
                 return True
             elif self.__throw_deck[-1][0] == 8 and not (3 < card_number < 8):
                 return True
@@ -336,9 +421,13 @@ class Game:
                 return True
             elif self.__throw_deck[-1][0] == 11 and not (3 < card_number < 10):
                 return True
-            elif self.__throw_deck[-1][0] == 12 and not (3 < card_number < 10 or card_number == 11):
+            elif self.__throw_deck[-1][0] == 12 and not (
+                3 < card_number < 10 or card_number == 11
+            ):
                 return True
-            elif self.__throw_deck[-1][0] == 13 and not (3 < card_number < 10 or 11 < card_number < 13):
+            elif self.__throw_deck[-1][0] == 13 and not (
+                3 < card_number < 10 or 11 < card_number < 13
+            ):
                 return True
             elif self.__throw_deck[-1][0] == 14:
                 return True
@@ -399,16 +488,25 @@ class Game:
                 for player in self.players:
                     if player not in self.send_dict:
                         self.send_dict[player] = []
-                    self.send_dict[player].append('GAME~FINISH~player disconnected~~~')
+                    self.send_dict[player].append(
+                        "GAME~FINISH~player disconnected~~~"
+                    )
                 self.finished = True
 
             else:
                 finish = self.is_over()
                 if finish:
                     for player in self.players:
-                        if not self.player_cards[player][2] and not self.player_cards[player][1] and not \
-                        self.player_cards[player][0]:
-                            self.send_dict[player].append('GAME~FINISH~You Won!~~~')
+                        if (
+                            not self.player_cards[player][2]
+                            and not self.player_cards[player][1]
+                            and not self.player_cards[player][0]
+                        ):
+                            self.send_dict[player].append(
+                                "GAME~FINISH~You Won!~~~"
+                            )
                         else:
-                            self.send_dict[player].append('GAME~FINISH~You are the ShitHead!~~~')
+                            self.send_dict[player].append(
+                                "GAME~FINISH~You are the ShitHead!~~~"
+                            )
                     self.finished = True
