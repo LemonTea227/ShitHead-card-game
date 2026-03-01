@@ -1,6 +1,4 @@
 def settings_menu(event, pos):
-    from pages._client_ref import get_client_module
+    from pages import menu_pages
 
-    pc = get_client_module()
-
-    return pc.settings_menu(event, pos)
+    return menu_pages.settings_menu(event, pos)

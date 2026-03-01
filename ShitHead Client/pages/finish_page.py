@@ -1,6 +1,4 @@
 def finish(event, pos, reason):
-    from pages._client_ref import get_client_module
+    from pages import menu_pages
 
-    pc = get_client_module()
-
-    return pc.finish(event, pos, reason)
+    return menu_pages.finish(event, pos, reason)

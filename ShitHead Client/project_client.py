@@ -31,6 +31,8 @@ MOVE_RIGHT = "proj_pics/move_right.png"  # 220X230
 MOVE_LEFT = "proj_pics/move_left.png"  # 220X230
 WINDOW_WIDTH = 1700
 WINDOW_HEIGHT = 956
+BASE_WIDTH = 1700
+BASE_HEIGHT = 956
 PINK = (255, 20, 147)
 WHITE = (255, 255, 255)
 RED = (255, 0, 0)
@@ -41,6 +43,7 @@ LEFT = 1
 SCROLL = 2
 RIGHT = 3
 screen = None
+window_screen = None
 IMAGE_CACHE = {}
 SCALED_IMAGE_CACHE = {}
 
@@ -65,18 +68,41 @@ def load_scaled_image(path, size, colorkey=None):
     return image
 
 
+def window_to_virtual(pos):
+    if window_screen is None:
+        return pos
+
+    win_w, win_h = window_screen.get_size()
+    if win_w <= 0 or win_h <= 0:
+        return pos
+
+    scale_x = float(BASE_WIDTH) / float(win_w)
+    scale_y = float(BASE_HEIGHT) / float(win_h)
+    return pos[0] * scale_x, pos[1] * scale_y
+
+
+def render_to_window():
+    if window_screen is None:
+        return
+    win_w, win_h = window_screen.get_size()
+    scaled = pygame.transform.smoothscale(screen, (win_w, win_h))
+    window_screen.blit(scaled, (0, 0))
+    pygame.display.flip()
+
+
 def main():
     # Init screen
-    global screen
+    global screen, window_screen
     pygame.init()
-    size = (WINDOW_WIDTH, WINDOW_HEIGHT)
-    screen = pygame.display.set_mode(size)
+    size = (BASE_WIDTH, BASE_HEIGHT)
+    window_screen = pygame.display.set_mode(size, pygame.RESIZABLE)
+    screen = pygame.Surface(size).convert()
     pygame.display.set_caption("Game")
     clock = pygame.time.Clock()
 
     img = load_image(BACKGROUND)
     screen.blit(img, (0, 0))  # (left, top)
-    pygame.display.flip()
+    render_to_window()
     sock = None
     try:
         sock = socket.socket()
@@ -99,16 +125,21 @@ def main():
             if RECEIVE:
                 scrn = receive_handler(RECEIVE.popleft())
             for event in pygame.event.get():
-                pos = pygame.mouse.get_pos()
+                pos = window_to_virtual(pygame.mouse.get_pos())
                 if event.type == pygame.QUIT:
                     raise
                     # pass
+                elif event.type == pygame.VIDEORESIZE:
+                    new_size = (max(800, event.w), max(600, event.h))
+                    window_screen = pygame.display.set_mode(
+                        new_size, pygame.RESIZABLE
+                    )
                 else:
                     if type(scrn) is not str:
                         scrn = event_handler(scrn[0], pos, event, scrn[1:])
                     else:
                         scrn = event_handler(scrn, pos, event, [])
-            pygame.display.flip()
+            render_to_window()
     except Exception as error:
         print(error)
 
@@ -251,7 +282,7 @@ def draw_wrapped_lines(font, lines, x, y, max_width, color):
     return current_y
 
 
-def draw_rules_section(x, y, width, height, title, lines):
+def draw_rules_section(x, y, width, height, title, lines, text_max_width=None):
     pygame.draw.rect(screen, LIGHT_GREY, (x, y, width, height), 0)
     pygame.draw.rect(screen, BLACK, (x, y, width, height), 3)
 
@@ -261,7 +292,10 @@ def draw_rules_section(x, y, width, height, title, lines):
     title_text = title_font.render(title, 1, PINK)
     screen.blit(title_text, (x + 15, y + 10))
 
-    draw_wrapped_lines(body_font, lines, x + 15, y + 65, width - 30, BLACK)
+    if text_max_width is None:
+        text_max_width = width - 30
+
+    draw_wrapped_lines(body_font, lines, x + 15, y + 65, text_max_width, BLACK)
 
 
 def rules_menu(event, pos):
@@ -333,7 +367,7 @@ def rules_menu(event, pos):
         60,
         650,
         1580,
-        260,
+        270,
         "Special Cards",
         [
             "2: Reset card, can be played freely.",
@@ -344,7 +378,16 @@ def rules_menu(event, pos):
             "Joker (14): Give throw deck to selected player "
             "(or previous player by default).",
         ],
+        text_max_width=900,
     )
+
+    pygame.draw.rect(screen, WHITE, (980, 720, 620, 180), 0)
+    pygame.draw.rect(screen, BLACK, (980, 720, 620, 180), 2)
+    panel_title_font = pygame.font.SysFont("calibri", 28)
+    panel_title = panel_title_font.render(
+        "Special cards shown in-game", 1, PINK
+    )
+    screen.blit(panel_title, (1000, 730))
 
     settings_small = load_scaled_image(SETTINGS, (90, 90), PINK)
     move_left_small = load_scaled_image(MOVE_LEFT, (80, 80), PINK)
@@ -353,16 +396,26 @@ def rules_menu(event, pos):
     screen.blit(move_left_small, (1220, 210))
     screen.blit(move_right_small, (1315, 210))
 
-    special_cards = [
-        cards.Cards(2, cards.DIAMONDS, 1020, 780),
-        cards.Cards(3, cards.CLUBS, 1090, 780),
-        cards.Cards(4, cards.HEARTS, 1160, 780),
-        cards.Cards(8, cards.SPADES, 1230, 780),
-        cards.Cards(10, cards.DIAMONDS, 1300, 780),
-        cards.Cards(14, cards.SPADES, 1370, 780),
+    special_card_specs = [
+        (2, cards.DIAMONDS, "2"),
+        (3, cards.CLUBS, "3"),
+        (4, cards.HEARTS, "4"),
+        (8, cards.SPADES, "8"),
+        (10, cards.DIAMONDS, "10"),
+        (14, cards.SPADES, "Joker"),
     ]
-    for card in special_cards:
-        card.draw(screen)
+    card_label_font = pygame.font.SysFont("calibri", 24)
+    start_x = 1005
+    for index, card_spec in enumerate(special_card_specs):
+        num, shape, label = card_spec
+        card_image = load_scaled_image(
+            cards.CARDSIMAGES[(num, shape)], (82, 102), PINK
+        )
+        draw_x = start_x + index * 98
+        draw_y = 770
+        screen.blit(card_image, (draw_x, draw_y))
+        label_text = card_label_font.render(label, 1, BLACK)
+        screen.blit(label_text, (draw_x + 26, draw_y + 112))
 
     back = False
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:

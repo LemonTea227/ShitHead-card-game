@@ -1,6 +1,4 @@
 def wait_to_full(event, pos, room, p_now, people):
-    from pages._client_ref import get_client_module
+    from pages import menu_pages
 
-    pc = get_client_module()
-
-    return pc.wait_to_full(event, pos, room, p_now, people)
+    return menu_pages.wait_to_full(event, pos, room, p_now, people)
