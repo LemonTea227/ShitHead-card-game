@@ -1,6 +1,7 @@
 import pygame
 from typing import TypeAlias
 
+import game
 from pages._client_ref import get_client_module
 
 MousePos: TypeAlias = tuple[float, float]
@@ -15,7 +16,6 @@ def choose_a_room_menu(
 ) -> ScreenState:
     pc = get_client_module()
 
-    game = pc.game
     button = pc.button
     load_image = pc.load_image
     red_raw_window = pc.red_raw_window
@@ -75,8 +75,13 @@ def choose_a_room_menu(
             return None
         return game.Game(room_num, max_players, players)
 
+    if not isinstance(games_message, list):
+        games_message = []
+
     games = []
     for game_info in games_message:
+        if not isinstance(game_info, str):
+            continue
         room = parse_room_entry(game_info)
         if room is not None:
             games.append(room)
@@ -133,7 +138,10 @@ def choose_a_room_menu(
     last_page = load_image(MOVE_LEFT, PINK)
     screen.blit(last_page, (LEFT_ARROW_X, ARROW_Y))
 
-    num = max(1, int(page))
+    try:
+        num = max(1, int(page))
+    except (TypeError, ValueError):
+        num = 1
     room_buttons = draw_page(num)
 
     next_page = load_image(MOVE_RIGHT, PINK)

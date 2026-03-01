@@ -862,8 +862,14 @@ def event_handler(
             return "GAME", more_args[0], more_args[1], more_args[2]
         return "RULES_GAME", more_args[0], more_args[1], more_args[2]
     elif scrn == "CHOOSE_A_ROOM":
+        games_message = []
+        page = 1
+        if len(more_args) >= 1 and isinstance(more_args[0], list):
+            games_message = more_args[0]
+        if len(more_args) >= 2:
+            page = more_args[1]
         return choose_room_page.choose_a_room_menu(
-            event, pos, more_args[0], more_args[1]
+            event, pos, games_message, page
         )
     elif scrn == "CREATE_A_ROOM":
         return create_room_page.create_a_room_menu(event, pos, more_args[0])
