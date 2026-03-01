@@ -18,9 +18,8 @@ dev = [
   "ruff>=0.6.0,<1",
 ]
 
-[tool.setuptools]
-packages = []
-py-modules = []
+[tool.setuptools.packages.find]
+include = ["common*"]
 
 [tool.black]
 line-length = 79

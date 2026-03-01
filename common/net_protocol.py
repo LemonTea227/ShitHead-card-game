@@ -90,8 +90,7 @@ def send_with_size(sock: socket.socket, data: TextOrBytes) -> None:
 
 def send_one_message(sock: socket.socket, data: TextOrBytes) -> None:
     payload = to_bytes(data)
-    length = socket.htonl(len(payload))
-    sock.sendall(struct.pack("I", length) + payload)
+    sock.sendall(struct.pack("!I", len(payload)) + payload)
 
     if TCP_DEBUG and payload:
         text_payload = to_text(payload)
@@ -106,8 +105,7 @@ def recv_one_message(sock: socket.socket) -> str:
     if not len_section:
         return ""
 
-    (len_int,) = struct.unpack("I", len_section)
-    len_int = socket.ntohl(len_int)
+    (len_int,) = struct.unpack("!I", len_section)
     data = _recv_amount(sock, len_int)
     if data is None or len_int != len(data):
         return ""
