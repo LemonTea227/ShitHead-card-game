@@ -1,6 +1,4 @@
 def choose_a_room_menu(event, pos, games_message, page):
-    from pages._client_ref import get_client_module
+    from pages import gameplay_pages
 
-    pc = get_client_module()
-
-    return pc.choose_a_room_menu(event, pos, games_message, page)
+    return gameplay_pages.choose_a_room_menu(event, pos, games_message, page)
