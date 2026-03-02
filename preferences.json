@@ -1,4 +1,4 @@
 {
-  "server_host": "127.0.0.1",
-  "server_port": 22073
+  "_comment": "This root-level preferences.json is not used by the application.",
+  "_note": "The active configuration file is located at 'ShitHead Client/preferences.json'. Edit that file instead of this one."
 }
