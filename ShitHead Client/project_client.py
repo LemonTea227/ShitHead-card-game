@@ -85,27 +85,91 @@ SCALED_IMAGE_CACHE: dict[
 PREFERENCES_JSON = "preferences.json"
 
 
+def _read_preferences() -> dict[str, object]:
+    try:
+        with open(PREFERENCES_JSON, "r", encoding="utf-8") as pref_file:
+            data = json.load(pref_file)
+            if isinstance(data, dict):
+                return data
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        pass
+    return {}
+
+
+def _write_preferences(data: dict[str, object]) -> None:
+    with open(PREFERENCES_JSON, "w", encoding="utf-8") as pref_file:
+        json.dump(data, pref_file, indent=2)
+
+
+def read_server_preferences(
+    default_host: str = DEFAULT_SERVER_HOST,
+    default_port: int = DEFAULT_SERVER_PORT,
+) -> tuple[str, int]:
+    data = _read_preferences()
+    host = str(data.get("server_host", default_host)).strip()
+    if not host:
+        host = default_host
+
+    try:
+        port = int(data.get("server_port", default_port))
+    except (TypeError, ValueError):
+        port = default_port
+
+    if not (1 <= port <= 65535):
+        port = default_port
+
+    return host, port
+
+
+def write_server_preferences(host: str, port: int) -> None:
+    clean_host = str(host).strip() or DEFAULT_SERVER_HOST
+    clean_port = int(port)
+    if not (1 <= clean_port <= 65535):
+        raise ValueError("port must be in range 1..65535")
+
+    data = _read_preferences()
+    data["server_host"] = clean_host
+    data["server_port"] = clean_port
+    _write_preferences(data)
+
+
 def parse_connection_config() -> tuple[str, int]:
+    saved_host, saved_port = read_server_preferences()
+
     parser = argparse.ArgumentParser(
         description="Run ShitHead client and connect to a server"
     )
     parser.add_argument(
         "--host",
-        default=os.environ.get("SHITHEAD_SERVER_HOST", DEFAULT_SERVER_HOST),
-        help="Server host/IP to connect to (default: 127.0.0.1)",
+        default=None,
+        help="Server host/IP to connect to",
     )
     parser.add_argument(
         "--port",
         type=int,
-        default=int(
-            os.environ.get("SHITHEAD_SERVER_PORT", DEFAULT_SERVER_PORT)
-        ),
-        help="Server port to connect to (default: 22073)",
+        default=None,
+        help="Server port to connect to",
     )
     args = parser.parse_args()
 
-    host = str(args.host).strip()
-    port = int(args.port)
+    env_host = os.environ.get("SHITHEAD_SERVER_HOST")
+    env_port_raw = os.environ.get("SHITHEAD_SERVER_PORT")
+
+    host = args.host if args.host is not None else env_host
+    if host is None:
+        host = saved_host
+
+    port = args.port
+    if port is None and env_port_raw is not None:
+        try:
+            port = int(env_port_raw)
+        except ValueError:
+            port = None
+    if port is None:
+        port = saved_port
+
+    host = str(host).strip()
+    port = int(port)
     if not host:
         raise ValueError("host must not be empty")
     if not (1 <= port <= 65535):
@@ -158,21 +222,19 @@ def render_to_window() -> None:
 
 
 def read_preferences_count(default: int = 2) -> int:
+    data = _read_preferences()
     try:
-        with open(PREFERENCES_JSON, "r", encoding="utf-8") as pref_file:
-            data = json.load(pref_file)
-            value = int(data.get("quick_game_players", default))
-            return max(2, min(4, value))
-    except (OSError, ValueError, TypeError, json.JSONDecodeError):
-        return default
+        value = int(data.get("quick_game_players", default))
+    except (TypeError, ValueError):
+        value = default
+    return max(2, min(4, value))
 
 
 def write_preferences_count(num: int) -> None:
     value = max(2, min(4, int(num)))
-    data = {"quick_game_players": value}
-
-    with open(PREFERENCES_JSON, "w", encoding="utf-8") as pref_file:
-        json.dump(data, pref_file, indent=2)
+    data = _read_preferences()
+    data["quick_game_players"] = value
+    _write_preferences(data)
 
 
 def main() -> None:

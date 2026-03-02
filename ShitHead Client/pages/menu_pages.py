@@ -6,6 +6,10 @@ from pages._client_ref import get_client_module
 MousePos: TypeAlias = tuple[float, float]
 ScreenState: TypeAlias = str | tuple[object, ...]
 RULES_SCROLL_OFFSET = 0
+SETTINGS_HOST_INPUT: Optional[str] = None
+SETTINGS_PORT_INPUT: Optional[str] = None
+SETTINGS_ACTIVE_FIELD: Optional[str] = None
+SETTINGS_STATUS_TEXT: str = ""
 
 
 def draw_wrapped_lines(
@@ -375,7 +379,15 @@ def draw_settings_top_bar(header_height: int = 140) -> None:
 
 
 def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
+    global SETTINGS_HOST_INPUT, SETTINGS_PORT_INPUT
+    global SETTINGS_ACTIVE_FIELD, SETTINGS_STATUS_TEXT
+
     pc = get_client_module()
+
+    if SETTINGS_HOST_INPUT is None or SETTINGS_PORT_INPUT is None:
+        saved_host, saved_port = pc.read_server_preferences()
+        SETTINGS_HOST_INPUT = saved_host
+        SETTINGS_PORT_INPUT = str(saved_port)
 
     img = pc.load_image(pc.BACKGROUND)
     pc.screen.blit(img, (0, 0))
@@ -434,11 +446,97 @@ def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
 
     back = False
     back_rect = pygame.Rect(25, 26, 210, 72)
+
+    connection_settings = pc.button.Button(
+        pc.PINK,
+        pc.WINDOW_WIDTH / 2 - 350,
+        controls_center_y + 105,
+        700,
+        100,
+        "Connection Settings",
+    )
+
+    host_label = pc.button.Button(
+        pc.WHITE,
+        pc.WINDOW_WIDTH / 2 - 350,
+        controls_center_y + 230,
+        320,
+        80,
+        "Server Host",
+    )
+    host_input_rect = pygame.Rect(
+        int(pc.WINDOW_WIDTH / 2 - 10),
+        int(controls_center_y + 230),
+        360,
+        80,
+    )
+
+    port_label = pc.button.Button(
+        pc.WHITE,
+        pc.WINDOW_WIDTH / 2 - 350,
+        controls_center_y + 330,
+        320,
+        80,
+        "Server Port",
+    )
+    port_input_rect = pygame.Rect(
+        int(pc.WINDOW_WIDTH / 2 - 10),
+        int(controls_center_y + 330),
+        360,
+        80,
+    )
+
+    save_button = pc.button.Button(
+        pc.WHITE,
+        pc.WINDOW_WIDTH / 2 - 350,
+        controls_center_y + 440,
+        700,
+        90,
+        "Save Connection",
+        font_size=46,
+    )
+
     pc.red_raw_window(quick_game_settings)
     pc.red_raw_window(number_of_players)
     pc.red_raw_window(minus_button)
     pc.red_raw_window(number)
     pc.red_raw_window(plus_button)
+    pc.red_raw_window(connection_settings)
+    pc.red_raw_window(host_label)
+    pc.red_raw_window(port_label)
+    pc.red_raw_window(save_button)
+
+    input_font = pygame.font.SysFont("calibri", 40)
+    status_font = pygame.font.SysFont("calibri", 32)
+
+    host_outline = pc.PINK if SETTINGS_ACTIVE_FIELD == "host" else pc.BLACK
+    port_outline = pc.PINK if SETTINGS_ACTIVE_FIELD == "port" else pc.BLACK
+
+    pygame.draw.rect(pc.screen, pc.WHITE, host_input_rect, 0)
+    pygame.draw.rect(pc.screen, host_outline, host_input_rect, 3)
+    host_text = input_font.render(SETTINGS_HOST_INPUT, 1, pc.BLACK)
+    pc.screen.blit(
+        host_text,
+        (host_input_rect.x + 10, host_input_rect.y + 20),
+    )
+
+    pygame.draw.rect(pc.screen, pc.WHITE, port_input_rect, 0)
+    pygame.draw.rect(pc.screen, port_outline, port_input_rect, 3)
+    port_text = input_font.render(SETTINGS_PORT_INPUT, 1, pc.BLACK)
+    pc.screen.blit(
+        port_text,
+        (port_input_rect.x + 10, port_input_rect.y + 20),
+    )
+
+    if SETTINGS_STATUS_TEXT:
+        status_text = status_font.render(SETTINGS_STATUS_TEXT, 1, pc.BLACK)
+        pc.screen.blit(
+            status_text,
+            (
+                pc.WINDOW_WIDTH / 2 - status_text.get_width() / 2,
+                controls_center_y + 545,
+            ),
+        )
 
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == pc.LEFT:
         if minus_button.is_over(pos):
@@ -451,8 +549,54 @@ def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
                 num += 1
                 pc.write_preferences_count(num)
 
+        elif host_input_rect.collidepoint(pos):
+            SETTINGS_ACTIVE_FIELD = "host"
+
+        elif port_input_rect.collidepoint(pos):
+            SETTINGS_ACTIVE_FIELD = "port"
+
+        elif save_button.is_over(pos):
+            host = SETTINGS_HOST_INPUT.strip()
+            try:
+                port = int(SETTINGS_PORT_INPUT)
+                if not host:
+                    raise ValueError
+                pc.write_server_preferences(host, port)
+                SETTINGS_STATUS_TEXT = "Connection saved"
+            except (TypeError, ValueError):
+                SETTINGS_STATUS_TEXT = "Enter a valid host and port"
+
         elif back_rect.collidepoint(pos):
             back = True
+
+        else:
+            SETTINGS_ACTIVE_FIELD = None
+
+    elif event.type == pygame.KEYDOWN:
+        if SETTINGS_ACTIVE_FIELD == "host":
+            if event.key == pygame.K_BACKSPACE:
+                SETTINGS_HOST_INPUT = SETTINGS_HOST_INPUT[:-1]
+            elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                SETTINGS_ACTIVE_FIELD = "port"
+            elif event.unicode and event.unicode.isprintable():
+                if event.unicode != " " and len(SETTINGS_HOST_INPUT) < 64:
+                    SETTINGS_HOST_INPUT += event.unicode
+        elif SETTINGS_ACTIVE_FIELD == "port":
+            if event.key == pygame.K_BACKSPACE:
+                SETTINGS_PORT_INPUT = SETTINGS_PORT_INPUT[:-1]
+            elif event.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                host = SETTINGS_HOST_INPUT.strip()
+                try:
+                    port = int(SETTINGS_PORT_INPUT)
+                    if not host:
+                        raise ValueError
+                    pc.write_server_preferences(host, port)
+                    SETTINGS_STATUS_TEXT = "Connection saved"
+                    SETTINGS_ACTIVE_FIELD = None
+                except (TypeError, ValueError):
+                    SETTINGS_STATUS_TEXT = "Enter a valid host and port"
+            elif event.unicode.isdigit() and len(SETTINGS_PORT_INPUT) < 5:
+                SETTINGS_PORT_INPUT += event.unicode
 
     if event.type == pygame.MOUSEMOTION:
         minus_button.color = (
@@ -460,6 +604,9 @@ def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
         )
         plus_button.color = (
             pc.LIGHT_GREY if plus_button.is_over(pos) else pc.WHITE
+        )
+        save_button.color = (
+            pc.LIGHT_GREY if save_button.is_over(pos) else pc.WHITE
         )
 
     if back:
