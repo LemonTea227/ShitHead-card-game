@@ -49,7 +49,7 @@ python project_client.py --host 192.168.1.50 --port 22073
 ```
 
 Or from the client UI: Home -> Settings -> Connection Settings,
-set `Server Host` and `Server Port`, press `Save Connection`, then restart
+set `Server Host` and `Server Port`, press `Save`, then restart
 the client.
 
 ### Safer free remote play (recommended): Tailscale
