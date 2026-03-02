@@ -156,29 +156,38 @@ def open_screen(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     notification = pc.get_active_notification()
     notification_close_rect = None
     if notification:
-        popup_x = pc.WINDOW_WIDTH / 2 - 360
-        popup_y = 135
-        popup_w = 720
-        popup_h = 70
+        popup_w = 420
+        popup_h = 64
+        popup_x = pc.WINDOW_WIDTH - popup_w - 20
+        popup_y = pc.WINDOW_HEIGHT - popup_h - 20
         popup_rect = pygame.Rect(int(popup_x), int(popup_y), popup_w, popup_h)
-        pygame.draw.rect(pc.screen, pc.WHITE, popup_rect, 0)
-        pygame.draw.rect(pc.screen, pc.BLACK, popup_rect, 2)
+
+        popup_surface = pygame.Surface((popup_w, popup_h), pygame.SRCALPHA)
+        pygame.draw.rect(
+            popup_surface,
+            (200, 0, 0, 165),
+            pygame.Rect(0, 0, popup_w, popup_h),
+            border_radius=14,
+        )
+        pc.screen.blit(popup_surface, popup_rect.topleft)
 
         close_w = 42
         notification_close_rect = pygame.Rect(
-            popup_rect.right - close_w - 8,
-            popup_rect.y + 14,
+            popup_rect.right - close_w - 10,
+            popup_rect.y + 11,
             close_w,
             close_w,
         )
-        pygame.draw.rect(pc.screen, pc.LIGHT_GREY, notification_close_rect, 0)
-        pygame.draw.rect(pc.screen, pc.BLACK, notification_close_rect, 2)
+        pygame.draw.rect(pc.screen, pc.WHITE, notification_close_rect, 0, 8)
+        pygame.draw.rect(pc.screen, pc.BLACK, notification_close_rect, 2, 8)
 
-        notif_font = pygame.font.SysFont("calibri", 30)
-        notif_text = notif_font.render(notification, 1, pc.BLACK)
+        notif_font = pygame.font.SysFont("calibri", 28)
+        notif_text = notif_font.render(
+            "Connection lost to server", 1, pc.WHITE
+        )
         pc.screen.blit(
             notif_text,
-            (popup_rect.x + 16, popup_rect.y + 20),
+            (popup_rect.x + 14, popup_rect.y + 19),
         )
 
         close_font = pygame.font.SysFont("calibri", 32, bold=True)
@@ -201,7 +210,7 @@ def open_screen(event: pygame.event.Event, pos: MousePos) -> ScreenState:
             and notification_close_rect.collidepoint(pos)
         ):
             pc.dismiss_notification()
-            next_screen = "OPEN_SCREEN"
+            return "OPEN_SCREEN"
 
         if quick_game.is_over(pos):
             next_screen = "QUICK_GAME"
@@ -222,6 +231,15 @@ def open_screen(event: pygame.event.Event, pos: MousePos) -> ScreenState:
             next_screen = "OPEN_SCREEN"
 
     if event.type == pygame.MOUSEMOTION:
+        close_hover = bool(
+            notification_close_rect
+            and notification_close_rect.collidepoint(pos)
+        )
+        if close_hover:
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_HAND)
+        else:
+            pygame.mouse.set_cursor(pygame.SYSTEM_CURSOR_ARROW)
+
         if quick_game.is_over(pos):
             quick_game.color = pc.LIGHT_GREY
         else:
