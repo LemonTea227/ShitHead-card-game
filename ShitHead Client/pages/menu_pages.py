@@ -116,6 +116,16 @@ def open_screen(event: pygame.event.Event, pos: MousePos) -> ScreenState:
         pc.WHITE, pc.WINDOW_WIDTH / 2 - 350, 75, 700, 100, "Quick Game"
     )
 
+    connect_button = pc.button.Button(
+        pc.WHITE,
+        25,
+        pc.WINDOW_HEIGHT - 110,
+        300,
+        70,
+        "Connect",
+        font_size=42,
+    )
+
     settings = pc.load_image(pc.SETTINGS, pc.PINK)
     pc.screen.blit(settings, (pc.WINDOW_WIDTH - 150, 22))
 
@@ -137,6 +147,11 @@ def open_screen(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     pc.red_raw_window(choose_a_room)
     pc.red_raw_window(create_a_room)
     pc.red_raw_window(rules)
+    pc.red_raw_window(connect_button)
+
+    status_font = pygame.font.SysFont("calibri", 30)
+    status_text = status_font.render(pc.get_connection_status(), 1, pc.WHITE)
+    pc.screen.blit(status_text, (340, pc.WINDOW_HEIGHT - 98))
 
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == pc.LEFT:
         if quick_game.is_over(pos):
@@ -150,6 +165,10 @@ def open_screen(event: pygame.event.Event, pos: MousePos) -> ScreenState:
 
         elif rules.is_over(pos):
             next_screen = "RULES"
+
+        elif connect_button.is_over(pos):
+            pc.connect_to_server()
+            next_screen = "OPEN_SCREEN"
 
         elif pc.WINDOW_WIDTH - 150 < pos[0] < pc.WINDOW_WIDTH - 150 + 128:
             if 22 < pos[1] < 22 + 128:
@@ -174,15 +193,31 @@ def open_screen(event: pygame.event.Event, pos: MousePos) -> ScreenState:
             rules.color = pc.LIGHT_GREY
         else:
             rules.color = pc.WHITE
+        if connect_button.is_over(pos):
+            connect_button.color = pc.LIGHT_GREY
+        else:
+            connect_button.color = pc.WHITE
 
     scrn: ScreenState = "OPEN_SCREEN"
     if next_screen == "QUICK_GAME":
+        if not pc.is_connected():
+            ok, _ = pc.connect_to_server()
+            if not ok:
+                return "OPEN_SCREEN"
         preferences = str(pc.read_preferences_count())
         pc.SEND.append(str(next_screen) + "~" + str(preferences) + "~~~")
     elif next_screen == "CHOOSE_A_ROOM":
+        if not pc.is_connected():
+            ok, _ = pc.connect_to_server()
+            if not ok:
+                return "OPEN_SCREEN"
         pc.SEND.append("SCREEN~CHOOSE_A_ROOM~~~")
         scrn = "OPEN_SCREEN"
     elif next_screen == "CREATE_A_ROOM":
+        if not pc.is_connected():
+            ok, _ = pc.connect_to_server()
+            if not ok:
+                return "OPEN_SCREEN"
         num = pc.read_preferences_count()
         scrn = "CREATE_A_ROOM", num
     elif next_screen == "SETTINGS":

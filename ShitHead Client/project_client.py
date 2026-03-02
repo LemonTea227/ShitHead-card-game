@@ -54,6 +54,9 @@ PORT = DEFAULT_SERVER_PORT
 SEND: deque[str] = deque()
 RECEIVE: deque[str] = deque()
 THREAD: list[threading.Thread] = []
+CLIENT_SOCKET: Optional[socket.socket] = None
+SEND_RECEIVE_THREAD: Optional[threading.Thread] = None
+CONNECTION_STATUS = "Not connected"
 BACKGROUND = "proj_pics/rainbow_background.jpg"  # 1700X956
 ICON = "proj_pics/ShitHead_icon_sized.png"  # 250X250
 SETTINGS = "proj_pics/settings.png"  # 128X128
@@ -237,6 +240,81 @@ def write_preferences_count(num: int) -> None:
     _write_preferences(data)
 
 
+def is_connected() -> bool:
+    return SEND_RECEIVE_THREAD is not None and SEND_RECEIVE_THREAD.is_alive()
+
+
+def get_connection_status() -> str:
+    return CONNECTION_STATUS
+
+
+def _set_connection_status(message: str) -> None:
+    global CONNECTION_STATUS
+    CONNECTION_STATUS = message
+
+
+def connect_to_server(
+    host: Optional[str] = None, port: Optional[int] = None
+) -> tuple[bool, str]:
+    global CLIENT_SOCKET, SEND_RECEIVE_THREAD, IP, PORT
+
+    if is_connected():
+        message = f"Connected to {IP}:{PORT}"
+        _set_connection_status(message)
+        return True, message
+
+    if host is None or port is None:
+        pref_host, pref_port = read_server_preferences()
+        if host is None:
+            host = pref_host
+        if port is None:
+            port = pref_port
+
+    IP = str(host).strip()
+    PORT = int(port)
+
+    if not IP or not (1 <= PORT <= 65535):
+        message = "Invalid host or port"
+        _set_connection_status(message)
+        return False, message
+
+    try:
+        sock = socket.socket()
+        sock.settimeout(3)
+        sock.connect((IP, PORT))
+        sock.settimeout(0.1)
+        CLIENT_SOCKET = sock
+        SEND_RECEIVE_THREAD = threading.Thread(
+            target=async_send_receive, args=(sock,)
+        )
+        SEND_RECEIVE_THREAD.start()
+        THREAD.append(SEND_RECEIVE_THREAD)
+        message = f"Connected to {IP}:{PORT}"
+        _set_connection_status(message)
+        return True, message
+    except Exception:
+        try:
+            sock.close()
+        except Exception:
+            pass
+        CLIENT_SOCKET = None
+        SEND_RECEIVE_THREAD = None
+        message = f"Failed to connect to {IP}:{PORT}"
+        _set_connection_status(message)
+        return False, message
+
+
+def disconnect_from_server() -> None:
+    global CLIENT_SOCKET, SEND_RECEIVE_THREAD
+    if CLIENT_SOCKET is not None:
+        try:
+            CLIENT_SOCKET.close()
+        except Exception:
+            pass
+    CLIENT_SOCKET = None
+    SEND_RECEIVE_THREAD = None
+
+
 def main() -> None:
     # Init screen
     global IP, PORT
@@ -253,33 +331,23 @@ def main() -> None:
     img = load_image(BACKGROUND)
     screen.blit(img, (0, 0))  # (left, top)
     render_to_window()
-    sock = None
-    try:
-        sock = socket.socket()
-        print(f"Connecting to server {IP}:{PORT}")
-        sock.connect((IP, PORT))
-        sock.settimeout(0.1)
-        # sock.settimeout(None) #delete the timeout
 
-        send_receive_thread = threading.Thread(
-            target=async_send_receive, args=(sock,)
-        )
-        send_receive_thread.start()
-        THREAD.append(send_receive_thread)
+    try:
+        print(f"Connecting to server {IP}:{PORT}")
+        connect_to_server(IP, PORT)
 
         scrn = "OPEN_SCREEN"
         while True:
             clock.tick(60)
-            if not send_receive_thread.is_alive():
-                raise
-                # pass
+            if SEND_RECEIVE_THREAD is not None and not is_connected():
+                disconnect_from_server()
+                _set_connection_status("Disconnected from server")
             if RECEIVE:
                 scrn = receive_handler(RECEIVE.popleft())
             for event in pygame.event.get():
                 pos = window_to_virtual(pygame.mouse.get_pos())
                 if event.type == pygame.QUIT:
-                    raise
-                    # pass
+                    raise RuntimeError("Client closed")
                 elif event.type == pygame.VIDEORESIZE:
                     new_size = (max(800, event.w), max(600, event.h))
                     window_screen = pygame.display.set_mode(
@@ -294,15 +362,11 @@ def main() -> None:
     except Exception as error:
         print(error)
 
-    try:
-        sock.close()
-    except socket.error:
-        pass
-    except TypeError:
-        pass
+    disconnect_from_server()
 
     for th in THREAD:
-        th.join()
+        if th.is_alive():
+            th.join()
 
     pygame.quit()
 
