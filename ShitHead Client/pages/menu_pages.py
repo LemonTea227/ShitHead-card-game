@@ -203,7 +203,7 @@ def rules_menu(
     header_height = 130
     content_top = header_height
     max_scroll_offset = 0
-    min_scroll_offset = -380
+    min_scroll_offset = -460
     scroll_step = 24
 
     if event.type == pygame.MOUSEWHEEL:
@@ -229,8 +229,10 @@ def rules_menu(
         [
             "Each player starts with 3 secret face-down cards, "
             "3 visible face-up cards, and 3 cards in hand.",
-            "The rest of the deck stays in the center as the draw deck.",
-            "The throw deck begins empty.",
+            "You must use cards in this order: hand first, then visible, "
+            "then secret.",
+            "The middle deck is the draw deck, and the throw pile starts "
+            "empty.",
         ],
     )
     draw_rules_section(
@@ -250,13 +252,15 @@ def rules_menu(
         60,
         430 + y_shift,
         760,
-        220,
-        "How To Play",
+        280,
+        "Your Turn (Step-by-Step)",
         [
-            "On your turn, left-click cards to select cards "
-            "of the same number.",
-            "Press T to throw selected cards.",
-            "Click throw deck top to take the pile into your hand.",
+            "1) Select one or more cards of the same rank (left-click).",
+            "2) Press T to throw them.",
+            "3) If your hand is empty, play from visible cards. "
+            "If both are empty, click a secret card.",
+            "4) If you cannot play, click the throw pile to take it "
+            "into your hand.",
             "Right-click T clears your current selection.",
         ],
     )
@@ -264,36 +268,40 @@ def rules_menu(
         880,
         430 + y_shift,
         760,
-        220,
-        "Win Condition",
+        280,
+        "After You Play",
         [
-            "A player wins by getting rid of all hand, visible, "
-            "and secret cards.",
-            "The final player left with cards is the ShitHead.",
+            "If the throw is valid, your cards go to the throw pile.",
+            "If you played from hand and draw cards are left, "
+            "you automatically draw back up to 3 cards.",
+            "Turn usually passes to the next player "
+            "(special cards can change this).",
+            "First player with no hand, visible, or secret cards wins.",
+            "Last player still holding cards is the ShitHead.",
         ],
     )
     draw_rules_section(
         60,
-        700 + y_shift,
+        760 + y_shift,
         1580,
         320,
         "Special Cards",
         [
-            "2: Reset card, can be played freely.",
-            "3: Transparent card, follows the previous card rule.",
-            "4: Cut-in card, can be thrown out of turn when pile is empty.",
-            "7: Next play must be 7 or lower (or special cards that bypass).",
-            "8: Skip next player.",
-            "10: Burn the throw deck.",
-            "Joker (14): Give throw deck to selected player "
-            "(or previous player by default).",
+            "2: Wild reset (always legal to play).",
+            "3: Transparent (does not change what rank is required).",
+            "4: Cut-in card (can be played out of turn only when pile is empty).",
+            "7: Next play must be 7 or lower (except special cards).",
+            "8: Skip the next player.",
+            "10: Burn the throw pile (pile is cleared).",
+            "Joker / 14: Give the throw pile to chosen player "
+            "(or previous player if none chosen).",
         ],
         text_max_width=1200,
     )
 
-    panel_x = 760
-    panel_y = 1060 + y_shift
-    panel_width = 900
+    panel_x = 60
+    panel_y = 1120 + y_shift
+    panel_width = 1580
     panel_height = 220
     pygame.draw.rect(
         pc.screen, pc.WHITE, (panel_x, panel_y, panel_width, panel_height), 0
