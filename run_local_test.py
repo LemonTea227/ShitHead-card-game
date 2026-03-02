@@ -1,3 +1,4 @@
+import json
 import signal
 import socket
 import subprocess
@@ -9,6 +10,7 @@ from typing import Sequence
 ROOT = Path(__file__).resolve().parent
 SERVER_DIR = ROOT / "ShitHead Server"
 CLIENT_DIR = ROOT / "ShitHead Client"
+PREFERENCES_PATH = CLIENT_DIR / "preferences.json"
 SERVER_HOST = "127.0.0.1"
 SERVER_PORT = 22073
 
@@ -48,11 +50,20 @@ def is_port_in_use(host: str, port: int) -> bool:
         return sock.connect_ex((host, port)) == 0
 
 
+def read_preferences_count(default: int = 2) -> int:
+    try:
+        with open(PREFERENCES_PATH, "r", encoding="utf-8") as pref_file:
+            data = json.load(pref_file)
+            value = int(data.get("quick_game_players", default))
+            return max(2, min(4, value))
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        return default
+
+
 def main() -> None:
     python_executable = resolve_python_executable()
     server = None
-    client_one = None
-    client_two = None
+    clients = []
 
     if is_port_in_use(SERVER_HOST, SERVER_PORT):
         print(
@@ -72,17 +83,19 @@ def main() -> None:
             print("Server failed to start. Check server logs/output.")
             return
 
-        client_one = start_process(
-            [python_executable, "project_client.py"],
-            CLIENT_DIR,
-        )
-        time.sleep(0.5)
-        client_two = start_process(
-            [python_executable, "project_client.py"],
-            CLIENT_DIR,
-        )
+        for _ in range(read_preferences_count()):
+            clients.append(
+                start_process(
+                    [python_executable, "project_client.py"],
+                    CLIENT_DIR,
+                )
+            )
+            time.sleep(0.5)
 
-        print("Started server and two clients. Press Ctrl+C to stop all.")
+        print(
+            f"Started server and {len(clients)} client(s). "
+            "Press Ctrl+C to stop all."
+        )
 
         while True:
             if server.poll() is not None:
@@ -93,8 +106,8 @@ def main() -> None:
     except KeyboardInterrupt:
         print("Stopping all processes...")
     finally:
-        terminate_process(client_two)
-        terminate_process(client_one)
+        for client_process in reversed(clients):
+            terminate_process(client_process)
         terminate_process(server)
 
 

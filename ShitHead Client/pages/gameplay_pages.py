@@ -252,12 +252,11 @@ def game_manager(
     rules_entry_button = button.Button(
         WHITE,
         25,
-        25,
+        2,
         210,
         72,
         "Rules",
     )
-    red_raw_window(rules_entry_button)
 
     deck_card = None
     top_card = None
@@ -786,6 +785,8 @@ def game_manager(
     for dk in players_cards_visible:
         for c in dk:
             card_to_window(c)
+
+    red_raw_window(rules_entry_button)
 
     send = False
     message = "GAME~"
