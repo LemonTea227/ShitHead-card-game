@@ -57,18 +57,18 @@ the client.
 For internet play without exposing ports publicly, use Tailscale (free tier).
 
 1. Install Tailscale on host + all clients and join the same tailnet.
-2. On host, run:
+2. On host, find your Tailscale IP from the Tailscale app (e.g. `100.64.0.1`), then run:
 
 ```powershell
 cd "ShitHead Server"
-python project_server.py --host <HOST_TAILSCALE_IP> --port 22073
+python project_server.py --host 100.64.0.1 --port 22073
 ```
 
-3. Friends run client with the same Tailscale host IP:
+3. Friends run client with the same Tailscale host IP (e.g. `100.64.0.1`):
 
 ```powershell
 cd "ShitHead Client"
-python project_client.py --host <HOST_TAILSCALE_IP> --port 22073
+python project_client.py --host 100.64.0.1 --port 22073
 ```
 
 ### Security notes
