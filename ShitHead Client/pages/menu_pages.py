@@ -255,9 +255,9 @@ def rules_menu(
         [
             "On your turn, left-click cards to select cards "
             "of the same number.",
-            "Press T to throw selected cards.",
+            "Press T or Enter to throw selected cards.",
             "Click throw deck top to take the pile into your hand.",
-            "Right-click T clears your current selection.",
+            "Right-click Throw clears your current selection.",
         ],
     )
     draw_rules_section(
