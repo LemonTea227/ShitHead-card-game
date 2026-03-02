@@ -143,11 +143,14 @@ def open_screen(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     pc.red_raw_window(create_a_room)
     pc.red_raw_window(rules)
 
-    status_box = pygame.Rect(20, 150, 560, 62)
+    status_box = pygame.Rect(20, pc.WINDOW_HEIGHT - 84, 560, 62)
     pygame.draw.rect(pc.screen, pc.WHITE, status_box, 0)
     pygame.draw.rect(pc.screen, pc.BLACK, status_box, 2)
+    status_color = pc.GREEN if pc.is_connected() else pc.RED
     status_font = pygame.font.SysFont("calibri", 30)
-    status_text = status_font.render(pc.get_connection_status(), 1, pc.BLACK)
+    status_text = status_font.render(
+        pc.get_connection_status(), 1, status_color
+    )
     pc.screen.blit(status_text, (status_box.x + 12, status_box.y + 14))
 
     notification = pc.get_active_notification()
@@ -485,11 +488,11 @@ def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     content_top = header_height + 20
     content_bottom = pc.WINDOW_HEIGHT - header_height
 
-    row_gap = 20
-    title_h = 80
-    card_h = 74
-    controls_h = 86
-    button_h = 74
+    row_gap = 10
+    title_h = 70
+    card_h = 64
+    controls_h = 72
+    button_h = 64
 
     y_title = content_top
     y_players_label = y_title + title_h + row_gap
@@ -498,7 +501,7 @@ def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
     y_host = y_conn_title + title_h + row_gap
     y_port = y_host + card_h + row_gap
     y_actions = y_port + card_h + row_gap
-    y_status = y_actions + button_h + 14
+    y_status = y_actions + button_h + row_gap
 
     quick_game_settings = pc.button.Button(
         pc.PINK,
@@ -638,8 +641,10 @@ def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
         )
     )
 
-    if y_status + 40 > content_bottom:
-        y_status = content_bottom - 40
+    labels_container_h = 90
+    labels_container_y = y_status
+    if labels_container_y + labels_container_h > content_bottom:
+        labels_container_y = content_bottom - labels_container_h
 
     pc.red_raw_window(quick_game_settings)
     pc.red_raw_window(number_of_players)
@@ -713,9 +718,9 @@ def settings_menu(event: pygame.event.Event, pos: MousePos) -> ScreenState:
 
     labels_container = pygame.Rect(
         int(pc.WINDOW_WIDTH / 2 - 350),
-        int(y_status - 52),
+        int(labels_container_y),
         700,
-        90,
+        labels_container_h,
     )
     pygame.draw.rect(pc.screen, pc.WHITE, labels_container, 0)
     pygame.draw.rect(pc.screen, pc.BLACK, labels_container, 2)
