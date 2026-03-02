@@ -513,7 +513,13 @@ def game_manager(
         card_to_window(card)
 
     throw_button = button.Button(
-        WHITE, WINDOW_WIDTH / 2 - 50, WINDOW_HEIGHT / 2 + 10, 100, 100, "T"
+        WHITE,
+        WINDOW_WIDTH / 2 - 50,
+        WINDOW_HEIGHT / 2 + 10,
+        100,
+        100,
+        "Throw",
+        font_size=28,
     )
     red_raw_window(throw_button)
 
@@ -785,6 +791,17 @@ def game_manager(
     send = False
     message = "GAME~"
 
+    def append_throw_message(base_message: str) -> str:
+        base_message += "THROW~"
+        for card in cards_to_throw:
+            base_message += (
+                str(card.get_number()) + "," + str(card.get_shape()) + "|"
+            )
+        base_message += "~"
+        base_message += str(to_who)
+        base_message += "~~~"
+        return base_message
+
     if event.type == pygame.MOUSEBUTTONDOWN and event.button == LEFT:
         if rules_entry_button.is_over(pos):
             return "RULES_GAME", cards_message, cards_to_throw, to_who
@@ -793,17 +810,7 @@ def game_manager(
                 to_who = int(num_player_button.text)
         if throw_button.is_over(pos):
             if cards_to_throw:
-                message += "THROW~"
-                for card in cards_to_throw:
-                    message += (
-                        str(card.get_number())
-                        + ","
-                        + str(card.get_shape())
-                        + "|"
-                    )
-                message += "~"
-                message += str(to_who)
-                message += "~~~"
+                message = append_throw_message(message)
                 send = True
         if top_card and top_card.is_over(pos):
             message += "TAKE_DECK_TO_HAND~~~"
@@ -843,6 +850,15 @@ def game_manager(
                     send = True
 
         pygame.display.update()
+
+    elif event.type == pygame.KEYDOWN and event.key in (
+        pygame.K_t,
+        pygame.K_RETURN,
+        pygame.K_KP_ENTER,
+    ):
+        if cards_to_throw:
+            message = append_throw_message(message)
+            send = True
 
     elif event.type == pygame.MOUSEBUTTONDOWN and event.button == RIGHT:
         if throw_button.is_over(pos):

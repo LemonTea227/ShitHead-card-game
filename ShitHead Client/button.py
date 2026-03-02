@@ -5,7 +5,7 @@ PINK = (255, 20, 147)
 
 
 class Button:
-    _font = None
+    _fonts: dict[int, pygame.font.Font] = {}
 
     def __init__(
         self,
@@ -16,6 +16,7 @@ class Button:
         height: float,
         text: str = "",
         text_color: tuple[int, int, int] = (0, 0, 0),
+        font_size: int = 60,
     ) -> None:
         self.color = color
         self.x = x
@@ -24,6 +25,7 @@ class Button:
         self.height = height
         self.text = text
         self.text_color = text_color
+        self.font_size = font_size
 
     def draw(
         self,
@@ -44,9 +46,13 @@ class Button:
         )
 
         if self.text != "":
-            if Button._font is None:
-                Button._font = pygame.font.SysFont("calibri", 60)
-            text = Button._font.render(self.text, 1, self.text_color)
+            if self.font_size not in Button._fonts:
+                Button._fonts[self.font_size] = pygame.font.SysFont(
+                    "calibri", self.font_size
+                )
+            text = Button._fonts[self.font_size].render(
+                self.text, 1, self.text_color
+            )
             win.blit(
                 text,
                 (

@@ -256,12 +256,12 @@ def rules_menu(
         "Your Turn (Step-by-Step)",
         [
             "1) Select one or more cards of the same rank (left-click).",
-            "2) Press T to throw them.",
+            "2) Press T or Enter or the Throw button to throw them.",
             "3) If your hand is empty, play from visible cards. "
             "If both are empty, click a secret card.",
             "4) If you cannot play, click the throw pile to take it "
             "into your hand.",
-            "Right-click T clears your current selection.",
+            "Right-click the Thorw button clears your current selection.",
         ],
     )
     draw_rules_section(
