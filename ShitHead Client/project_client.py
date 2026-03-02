@@ -3,6 +3,7 @@ import json
 import socket
 import sys
 import threading
+import argparse
 from collections import deque
 from pathlib import Path
 from typing import Optional, Sequence, TypeAlias
@@ -46,8 +47,10 @@ from pages import (
 )
 from tcp_by_size import send_with_size, recv_by_size
 
-IP = "127.0.0.1"
-PORT = 22073
+DEFAULT_SERVER_HOST = "127.0.0.1"
+DEFAULT_SERVER_PORT = 22073
+IP = DEFAULT_SERVER_HOST
+PORT = DEFAULT_SERVER_PORT
 SEND: deque[str] = deque()
 RECEIVE: deque[str] = deque()
 THREAD: list[threading.Thread] = []
@@ -80,6 +83,34 @@ SCALED_IMAGE_CACHE: dict[
     tuple[str, tuple[int, int], Colorkey], pygame.Surface
 ] = {}
 PREFERENCES_JSON = "preferences.json"
+
+
+def parse_connection_config() -> tuple[str, int]:
+    parser = argparse.ArgumentParser(
+        description="Run ShitHead client and connect to a server"
+    )
+    parser.add_argument(
+        "--host",
+        default=os.environ.get("SHITHEAD_SERVER_HOST", DEFAULT_SERVER_HOST),
+        help="Server host/IP to connect to (default: 127.0.0.1)",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=int(
+            os.environ.get("SHITHEAD_SERVER_PORT", DEFAULT_SERVER_PORT)
+        ),
+        help="Server port to connect to (default: 22073)",
+    )
+    args = parser.parse_args()
+
+    host = str(args.host).strip()
+    port = int(args.port)
+    if not host:
+        raise ValueError("host must not be empty")
+    if not (1 <= port <= 65535):
+        raise ValueError("port must be in range 1..65535")
+    return host, port
 
 
 def load_image(path: str, colorkey: Colorkey = None) -> pygame.Surface:
@@ -146,6 +177,9 @@ def write_preferences_count(num: int) -> None:
 
 def main() -> None:
     # Init screen
+    global IP, PORT
+    IP, PORT = parse_connection_config()
+
     global screen, window_screen
     pygame.init()
     size = (BASE_WIDTH, BASE_HEIGHT)
@@ -160,6 +194,7 @@ def main() -> None:
     sock = None
     try:
         sock = socket.socket()
+        print(f"Connecting to server {IP}:{PORT}")
         sock.connect((IP, PORT))
         sock.settimeout(0.1)
         # sock.settimeout(None) #delete the timeout

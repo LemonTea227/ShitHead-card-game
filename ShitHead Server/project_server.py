@@ -2,13 +2,17 @@ import socket
 import threading
 import time
 import logging
+import argparse
+import os
 from typing import List, Optional, Tuple
 
 import game
 from tcp_by_size import send_with_size, recv_by_size
 
-IP = "0.0.0.0"
-PORT = 22073
+DEFAULT_HOST = "127.0.0.1"
+DEFAULT_PORT = 22073
+IP = DEFAULT_HOST
+PORT = DEFAULT_PORT
 SEND: dict[socket.socket, list[str]] = {}
 THREAD: list[threading.Thread] = []
 ONLINE_GAMES: list[game.Game] = []
@@ -22,10 +26,56 @@ logging.basicConfig(
 logger = logging.getLogger("shithead.server")
 
 
+def _parse_host_port() -> tuple[str, int]:
+    parser = argparse.ArgumentParser(
+        description="Run ShitHead server with configurable bind host/port"
+    )
+    parser.add_argument(
+        "--host",
+        default=os.environ.get("SHITHEAD_SERVER_HOST", DEFAULT_HOST),
+        help=(
+            "Host/interface to bind. Defaults to 127.0.0.1 for safety. "
+            "Use 0.0.0.0 or --lan for LAN access."
+        ),
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=int(os.environ.get("SHITHEAD_SERVER_PORT", DEFAULT_PORT)),
+        help="Port to bind (default: 22073)",
+    )
+    parser.add_argument(
+        "--lan",
+        action="store_true",
+        help="Convenience flag: bind to 0.0.0.0 for LAN clients",
+    )
+    args = parser.parse_args()
+
+    host = "0.0.0.0" if args.lan else str(args.host).strip()
+    port = int(args.port)
+
+    if not host:
+        raise ValueError("host must not be empty")
+    if not (1 <= port <= 65535):
+        raise ValueError("port must be in range 1..65535")
+    return host, port
+
+
 def main() -> None:
+    global IP, PORT
+    IP, PORT = _parse_host_port()
+
     server_socket = socket.socket()
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((IP, PORT))
     server_socket.listen(5)
+
+    logger.info("server listening on %s:%s", IP, PORT)
+    if IP == "0.0.0.0":
+        logger.warning(
+            "LAN/public bind enabled. Only use with trusted clients and "
+            "firewall rules."
+        )
 
     while True:
         # open socket with client

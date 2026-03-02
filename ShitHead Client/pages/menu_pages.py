@@ -289,7 +289,8 @@ def rules_menu(
         [
             "2: Wild reset (always legal to play).",
             "3: Transparent (does not change what rank is required).",
-            "4: Cut-in card (can be played out of turn only when pile is empty).",
+            "4: Cut-in card (can be played out of turn only when pile is "
+            "empty).",
             "7: Next play must be 7 or lower (except special cards).",
             "8: Skip the next player.",
             "10: Burn the throw pile (pile is cleared).",
