@@ -84,10 +84,12 @@ def main() -> None:
             return
 
         for _ in range(read_preferences_count()):
-            clients.append(start_process(
-                [python_executable, "project_client.py"],
-                CLIENT_DIR,
-            ))
+            clients.append(
+                start_process(
+                    [python_executable, "project_client.py"],
+                    CLIENT_DIR,
+                )
+            )
             time.sleep(0.5)
 
         print(
