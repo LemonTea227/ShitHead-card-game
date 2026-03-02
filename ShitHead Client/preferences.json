@@ -1,3 +1,5 @@
 {
-  "quick_game_players": 2
+  "quick_game_players": 2,
+  "server_host": "127.0.0.1",
+  "server_port": 22073
 }

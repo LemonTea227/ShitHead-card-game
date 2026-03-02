@@ -3,6 +3,7 @@ import json
 import socket
 import sys
 import threading
+import argparse
 from collections import deque
 from pathlib import Path
 from typing import Optional, Sequence, TypeAlias
@@ -46,11 +47,18 @@ from pages import (
 )
 from tcp_by_size import send_with_size, recv_by_size
 
-IP = "127.0.0.1"
-PORT = 22073
+DEFAULT_SERVER_HOST = "127.0.0.1"
+DEFAULT_SERVER_PORT = 22073
+IP = DEFAULT_SERVER_HOST
+PORT = DEFAULT_SERVER_PORT
 SEND: deque[str] = deque()
 RECEIVE: deque[str] = deque()
 THREAD: list[threading.Thread] = []
+CLIENT_SOCKET: Optional[socket.socket] = None
+SEND_RECEIVE_THREAD: Optional[threading.Thread] = None
+CONNECTION_STATUS = "Not connected"
+NOTIFICATION_MESSAGE = ""
+NOTIFICATION_EXPIRES_AT = 0
 BACKGROUND = "proj_pics/rainbow_background.jpg"  # 1700X956
 ICON = "proj_pics/ShitHead_icon_sized.png"  # 250X250
 SETTINGS = "proj_pics/settings.png"  # 128X128
@@ -80,6 +88,98 @@ SCALED_IMAGE_CACHE: dict[
     tuple[str, tuple[int, int], Colorkey], pygame.Surface
 ] = {}
 PREFERENCES_JSON = "preferences.json"
+
+
+def _read_preferences() -> dict[str, object]:
+    try:
+        with open(PREFERENCES_JSON, "r", encoding="utf-8") as pref_file:
+            data = json.load(pref_file)
+            if isinstance(data, dict):
+                return data
+    except (OSError, ValueError, TypeError, json.JSONDecodeError):
+        pass
+    return {}
+
+
+def _write_preferences(data: dict[str, object]) -> None:
+    with open(PREFERENCES_JSON, "w", encoding="utf-8") as pref_file:
+        json.dump(data, pref_file, indent=2)
+
+
+def read_server_preferences(
+    default_host: str = DEFAULT_SERVER_HOST,
+    default_port: int = DEFAULT_SERVER_PORT,
+) -> tuple[str, int]:
+    data = _read_preferences()
+    host = str(data.get("server_host", default_host)).strip()
+    if not host:
+        host = default_host
+
+    try:
+        port = int(data.get("server_port", default_port))
+    except (TypeError, ValueError):
+        port = default_port
+
+    if not (1 <= port <= 65535):
+        port = default_port
+
+    return host, port
+
+
+def write_server_preferences(host: str, port: int) -> None:
+    clean_host = str(host).strip() or DEFAULT_SERVER_HOST
+    clean_port = int(port)
+    if not (1 <= clean_port <= 65535):
+        raise ValueError("port must be in range 1..65535")
+
+    data = _read_preferences()
+    data["server_host"] = clean_host
+    data["server_port"] = clean_port
+    _write_preferences(data)
+
+
+def parse_connection_config() -> tuple[str, int]:
+    saved_host, saved_port = read_server_preferences()
+
+    parser = argparse.ArgumentParser(
+        description="Run ShitHead client and connect to a server"
+    )
+    parser.add_argument(
+        "--host",
+        default=None,
+        help="Server host/IP to connect to",
+    )
+    parser.add_argument(
+        "--port",
+        type=int,
+        default=None,
+        help="Server port to connect to",
+    )
+    args = parser.parse_args()
+
+    env_host = os.environ.get("SHITHEAD_SERVER_HOST")
+    env_port_raw = os.environ.get("SHITHEAD_SERVER_PORT")
+
+    host = args.host if args.host is not None else env_host
+    if host is None:
+        host = saved_host
+
+    port = args.port
+    if port is None and env_port_raw is not None:
+        try:
+            port = int(env_port_raw)
+        except ValueError:
+            port = None
+    if port is None:
+        port = saved_port
+
+    host = str(host).strip()
+    port = int(port)
+    if not host:
+        raise ValueError("host must not be empty")
+    if not (1 <= port <= 65535):
+        raise ValueError("port must be in range 1..65535")
+    return host, port
 
 
 def load_image(path: str, colorkey: Colorkey = None) -> pygame.Surface:
@@ -127,27 +227,167 @@ def render_to_window() -> None:
 
 
 def read_preferences_count(default: int = 2) -> int:
+    data = _read_preferences()
     try:
-        with open(PREFERENCES_JSON, "r", encoding="utf-8") as pref_file:
-            data = json.load(pref_file)
-            value = int(data.get("quick_game_players", default))
-            return max(2, min(4, value))
-    except (OSError, ValueError, TypeError, json.JSONDecodeError):
-        return default
+        value = int(data.get("quick_game_players", default))
+    except (TypeError, ValueError):
+        value = default
+    return max(2, min(4, value))
 
 
 def write_preferences_count(num: int) -> None:
     value = max(2, min(4, int(num)))
-    data = {"quick_game_players": value}
+    data = _read_preferences()
+    data["quick_game_players"] = value
+    _write_preferences(data)
 
-    with open(PREFERENCES_JSON, "w", encoding="utf-8") as pref_file:
-        json.dump(data, pref_file, indent=2)
+
+def is_connected() -> bool:
+    return SEND_RECEIVE_THREAD is not None and SEND_RECEIVE_THREAD.is_alive()
+
+
+def get_connection_status() -> str:
+    return CONNECTION_STATUS
+
+
+def _set_connection_status(message: str) -> None:
+    global CONNECTION_STATUS
+    CONNECTION_STATUS = message
+
+
+def push_notification(message: str, duration_ms: int = 10000) -> None:
+    global NOTIFICATION_MESSAGE, NOTIFICATION_EXPIRES_AT
+    NOTIFICATION_MESSAGE = message
+    NOTIFICATION_EXPIRES_AT = pygame.time.get_ticks() + max(1000, duration_ms)
+
+
+def dismiss_notification() -> None:
+    global NOTIFICATION_MESSAGE, NOTIFICATION_EXPIRES_AT
+    NOTIFICATION_MESSAGE = ""
+    NOTIFICATION_EXPIRES_AT = 0
+
+
+def get_active_notification() -> str:
+    if (
+        NOTIFICATION_MESSAGE
+        and pygame.time.get_ticks() < NOTIFICATION_EXPIRES_AT
+    ):
+        return NOTIFICATION_MESSAGE
+    return ""
+
+
+def validate_server_endpoint(
+    host: str, port: int, timeout_sec: float = 1.5
+) -> bool:
+    target_host = str(host).strip()
+    target_port = int(port)
+    if not target_host or not (1 <= target_port <= 65535):
+        return False
+
+    test_socket = socket.socket()
+    test_socket.settimeout(timeout_sec)
+    try:
+        test_socket.connect((target_host, target_port))
+        return True
+    except OSError:
+        return False
+    finally:
+        test_socket.close()
+
+
+def get_clipboard_text() -> str:
+    try:
+        if not pygame.scrap.get_init():
+            pygame.scrap.init()
+        raw_data = pygame.scrap.get(pygame.SCRAP_TEXT)
+        if not raw_data:
+            return ""
+        return (
+            raw_data.decode(errors="ignore")
+            .replace("\x00", "")
+            .replace("\r", "")
+            .replace("\n", "")
+        )
+    except Exception:
+        return ""
+
+
+def connect_to_server(
+    host: Optional[str] = None, port: Optional[int] = None
+) -> tuple[bool, str]:
+    global CLIENT_SOCKET, SEND_RECEIVE_THREAD, IP, PORT
+
+    if is_connected():
+        message = f"Connected to {IP}:{PORT}"
+        _set_connection_status(message)
+        return True, message
+
+    if host is None or port is None:
+        pref_host, pref_port = read_server_preferences()
+        if host is None:
+            host = pref_host
+        if port is None:
+            port = pref_port
+
+    IP = str(host).strip()
+    PORT = int(port)
+
+    if not IP or not (1 <= PORT <= 65535):
+        message = "Invalid host or port"
+        _set_connection_status(message)
+        push_notification(message)
+        return False, message
+
+    try:
+        sock = socket.socket()
+        sock.settimeout(3)
+        sock.connect((IP, PORT))
+        sock.settimeout(0.1)
+        CLIENT_SOCKET = sock
+        SEND_RECEIVE_THREAD = threading.Thread(
+            target=async_send_receive, args=(sock,)
+        )
+        SEND_RECEIVE_THREAD.start()
+        THREAD.append(SEND_RECEIVE_THREAD)
+        message = f"Connected to {IP}:{PORT}"
+        _set_connection_status(message)
+        dismiss_notification()
+        return True, message
+    except Exception:
+        try:
+            sock.close()
+        except Exception:
+            pass
+        CLIENT_SOCKET = None
+        SEND_RECEIVE_THREAD = None
+        message = f"Failed to connect to {IP}:{PORT}"
+        _set_connection_status(message)
+        push_notification(message)
+        return False, message
+
+
+def disconnect_from_server() -> None:
+    global CLIENT_SOCKET, SEND_RECEIVE_THREAD
+    if CLIENT_SOCKET is not None:
+        try:
+            CLIENT_SOCKET.close()
+        except Exception:
+            pass
+    CLIENT_SOCKET = None
+    SEND_RECEIVE_THREAD = None
 
 
 def main() -> None:
     # Init screen
+    global IP, PORT
+    IP, PORT = parse_connection_config()
+
     global screen, window_screen
     pygame.init()
+    try:
+        pygame.scrap.init()
+    except Exception:
+        pass
     size = (BASE_WIDTH, BASE_HEIGHT)
     window_screen = pygame.display.set_mode(size, pygame.RESIZABLE)
     screen = pygame.Surface(size).convert()
@@ -157,32 +397,24 @@ def main() -> None:
     img = load_image(BACKGROUND)
     screen.blit(img, (0, 0))  # (left, top)
     render_to_window()
-    sock = None
-    try:
-        sock = socket.socket()
-        sock.connect((IP, PORT))
-        sock.settimeout(0.1)
-        # sock.settimeout(None) #delete the timeout
 
-        send_receive_thread = threading.Thread(
-            target=async_send_receive, args=(sock,)
-        )
-        send_receive_thread.start()
-        THREAD.append(send_receive_thread)
+    try:
+        print(f"Connecting to server {IP}:{PORT}")
+        connect_to_server(IP, PORT)
 
         scrn = "OPEN_SCREEN"
         while True:
             clock.tick(60)
-            if not send_receive_thread.is_alive():
-                raise
-                # pass
+            if SEND_RECEIVE_THREAD is not None and not is_connected():
+                disconnect_from_server()
+                _set_connection_status("Disconnected from server")
+                push_notification("Connection lost")
             if RECEIVE:
                 scrn = receive_handler(RECEIVE.popleft())
             for event in pygame.event.get():
                 pos = window_to_virtual(pygame.mouse.get_pos())
                 if event.type == pygame.QUIT:
-                    raise
-                    # pass
+                    raise RuntimeError("Client closed")
                 elif event.type == pygame.VIDEORESIZE:
                     new_size = (max(800, event.w), max(600, event.h))
                     window_screen = pygame.display.set_mode(
@@ -197,15 +429,11 @@ def main() -> None:
     except Exception as error:
         print(error)
 
-    try:
-        sock.close()
-    except socket.error:
-        pass
-    except TypeError:
-        pass
+    disconnect_from_server()
 
     for th in THREAD:
-        th.join()
+        if th.is_alive():
+            th.join()
 
     pygame.quit()
 

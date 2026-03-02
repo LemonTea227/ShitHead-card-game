@@ -239,6 +239,7 @@ def game_manager(
     WINDOW_HEIGHT = pc.WINDOW_HEIGHT
     WHITE = pc.WHITE
     RED = pc.RED
+    GREEN = pc.GREEN
     PINK = pc.PINK
     LEFT = pc.LEFT
     RIGHT = pc.RIGHT
@@ -258,16 +259,24 @@ def game_manager(
         "Rules",
     )
 
+    center_gap = 20
+    pile_top_y = WINDOW_HEIGHT / 2 - 125 + 10
+    throw_button_x = WINDOW_WIDTH / 2 - 50
+    throw_button_y = WINDOW_HEIGHT / 2 + 10
+
     deck_card = None
     top_card = None
     deck = int(cards_message[0])
     if deck > 0:
         deck_card = cards.Cards(
-            None, None, WINDOW_WIDTH / 2 + 50, WINDOW_HEIGHT / 2 - 125 + 10
+            None,
+            None,
+            WINDOW_WIDTH / 2 + 50 + center_gap,
+            pile_top_y,
         )
         deck_button = button.Button(
             WHITE,
-            WINDOW_WIDTH / 2 + 50 + 200 + 2,
+            WINDOW_WIDTH / 2 + 50 + center_gap + 200 + 2,
             WINDOW_HEIGHT / 2 - 50 + 10,
             100,
             100,
@@ -282,8 +291,8 @@ def game_manager(
         top_card = cards.Cards(
             deck_top_number,
             deck_top_shape,
-            WINDOW_WIDTH / 2 - 250,
-            WINDOW_HEIGHT / 2 - 125 + 10,
+            WINDOW_WIDTH / 2 - 250 - center_gap,
+            pile_top_y,
         )
         card_to_window(top_card)
 
@@ -514,8 +523,8 @@ def game_manager(
 
     throw_button = button.Button(
         WHITE,
-        WINDOW_WIDTH / 2 - 50,
-        WINDOW_HEIGHT / 2 + 10,
+        throw_button_x,
+        throw_button_y,
         100,
         100,
         "Throw",
@@ -524,15 +533,6 @@ def game_manager(
     red_raw_window(throw_button)
 
     turn = int(cards_message[5].split(":")[1]) + 1
-    turn_button = button.Button(
-        RED,
-        WINDOW_WIDTH / 2 - 50,
-        WINDOW_HEIGHT / 2 - 100 + 10,
-        100,
-        100,
-        str(turn),
-    )
-    red_raw_window(turn_button)
 
     other_players_data = {}
     players_num = []
@@ -555,6 +555,48 @@ def game_manager(
             other_players_data[add_to].append(vis)
         elif part.split(":")[0] == "Secret":
             other_players_data[add_to].append(int(part.split(":")[1]))
+
+    total_players = len(players_num) + 1
+    own_player_num = 1
+    for candidate in range(1, total_players + 1):
+        if candidate not in players_num:
+            own_player_num = candidate
+            break
+
+    you_text = "You: " + str(own_player_num)
+    you_font_size = 34
+    you_font = pygame.font.SysFont("calibri", you_font_size)
+    you_text_width = you_font.size(you_text)[0]
+    you_width = max(130, you_text_width + 28)
+    you_height = 60
+
+    throw_pile_left_x = WINDOW_WIDTH / 2 - 250 - center_gap
+    gap_from_pile = center_gap
+    min_you_x = WINDOW_WIDTH / 2 - 520
+    you_x = max(min_you_x, throw_pile_left_x - you_width - gap_from_pile)
+    you_y = pile_top_y + 125 - you_height / 2
+
+    you_indicator = button.Button(
+        PINK,
+        you_x,
+        you_y,
+        you_width,
+        you_height,
+        you_text,
+        font_size=you_font_size,
+    )
+    red_raw_window(you_indicator)
+
+    turn_color = GREEN if turn == own_player_num else RED
+    turn_button = button.Button(
+        turn_color,
+        WINDOW_WIDTH / 2 - 50,
+        WINDOW_HEIGHT / 2 - 100 + 10,
+        100,
+        100,
+        str(turn),
+    )
+    red_raw_window(turn_button)
 
     num_cards_player_buttons = []
     num_player_buttons = []
