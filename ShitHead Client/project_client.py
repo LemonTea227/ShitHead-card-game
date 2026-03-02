@@ -57,6 +57,8 @@ THREAD: list[threading.Thread] = []
 CLIENT_SOCKET: Optional[socket.socket] = None
 SEND_RECEIVE_THREAD: Optional[threading.Thread] = None
 CONNECTION_STATUS = "Not connected"
+NOTIFICATION_MESSAGE = ""
+NOTIFICATION_EXPIRES_AT = 0
 BACKGROUND = "proj_pics/rainbow_background.jpg"  # 1700X956
 ICON = "proj_pics/ShitHead_icon_sized.png"  # 250X250
 SETTINGS = "proj_pics/settings.png"  # 128X128
@@ -253,6 +255,63 @@ def _set_connection_status(message: str) -> None:
     CONNECTION_STATUS = message
 
 
+def push_notification(message: str, duration_ms: int = 10000) -> None:
+    global NOTIFICATION_MESSAGE, NOTIFICATION_EXPIRES_AT
+    NOTIFICATION_MESSAGE = message
+    NOTIFICATION_EXPIRES_AT = pygame.time.get_ticks() + max(1000, duration_ms)
+
+
+def dismiss_notification() -> None:
+    global NOTIFICATION_MESSAGE, NOTIFICATION_EXPIRES_AT
+    NOTIFICATION_MESSAGE = ""
+    NOTIFICATION_EXPIRES_AT = 0
+
+
+def get_active_notification() -> str:
+    if (
+        NOTIFICATION_MESSAGE
+        and pygame.time.get_ticks() < NOTIFICATION_EXPIRES_AT
+    ):
+        return NOTIFICATION_MESSAGE
+    return ""
+
+
+def validate_server_endpoint(
+    host: str, port: int, timeout_sec: float = 1.5
+) -> bool:
+    target_host = str(host).strip()
+    target_port = int(port)
+    if not target_host or not (1 <= target_port <= 65535):
+        return False
+
+    test_socket = socket.socket()
+    test_socket.settimeout(timeout_sec)
+    try:
+        test_socket.connect((target_host, target_port))
+        return True
+    except OSError:
+        return False
+    finally:
+        test_socket.close()
+
+
+def get_clipboard_text() -> str:
+    try:
+        if not pygame.scrap.get_init():
+            pygame.scrap.init()
+        raw_data = pygame.scrap.get(pygame.SCRAP_TEXT)
+        if not raw_data:
+            return ""
+        return (
+            raw_data.decode(errors="ignore")
+            .replace("\x00", "")
+            .replace("\r", "")
+            .replace("\n", "")
+        )
+    except Exception:
+        return ""
+
+
 def connect_to_server(
     host: Optional[str] = None, port: Optional[int] = None
 ) -> tuple[bool, str]:
@@ -276,6 +335,7 @@ def connect_to_server(
     if not IP or not (1 <= PORT <= 65535):
         message = "Invalid host or port"
         _set_connection_status(message)
+        push_notification(message)
         return False, message
 
     try:
@@ -291,6 +351,7 @@ def connect_to_server(
         THREAD.append(SEND_RECEIVE_THREAD)
         message = f"Connected to {IP}:{PORT}"
         _set_connection_status(message)
+        dismiss_notification()
         return True, message
     except Exception:
         try:
@@ -301,6 +362,7 @@ def connect_to_server(
         SEND_RECEIVE_THREAD = None
         message = f"Failed to connect to {IP}:{PORT}"
         _set_connection_status(message)
+        push_notification(message)
         return False, message
 
 
@@ -322,6 +384,10 @@ def main() -> None:
 
     global screen, window_screen
     pygame.init()
+    try:
+        pygame.scrap.init()
+    except Exception:
+        pass
     size = (BASE_WIDTH, BASE_HEIGHT)
     window_screen = pygame.display.set_mode(size, pygame.RESIZABLE)
     screen = pygame.Surface(size).convert()
@@ -342,6 +408,7 @@ def main() -> None:
             if SEND_RECEIVE_THREAD is not None and not is_connected():
                 disconnect_from_server()
                 _set_connection_status("Disconnected from server")
+                push_notification("Connection lost")
             if RECEIVE:
                 scrn = receive_handler(RECEIVE.popleft())
             for event in pygame.event.get():
